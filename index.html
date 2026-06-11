@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1226">
+<title>マージ＆昇天｜ステージ</title>
+<style>
+  :root{ --bg:#0f1226; --accent:#5ad1ff; --good:#46e6a0; --bad:#ff6b8b; --gold:#ffd75e; --text:#eef1ff; --muted:#9aa0c9; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  html,body{margin:0;height:100%;}
+  body{background:radial-gradient(130% 130% at 50% 0%, #2a2150 0%, #161033 50%, var(--bg) 100%);
+    color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Helvetica Neue",sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100%;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    overflow:hidden;user-select:none;-webkit-user-select:none;}
+  .wrap{width:min(94vw,440px);display:flex;flex-direction:column;gap:10px;padding:12px 0 18px;}
+  header{display:flex;justify-content:space-between;align-items:flex-end;}
+  .title{font-size:15px;font-weight:800;letter-spacing:.04em;color:var(--muted);}
+  .score{text-align:right;}
+  .score .label{font-size:10px;color:var(--muted);letter-spacing:.1em;}
+  .score .val{font-size:24px;font-weight:900;line-height:1;}
+
+  .bar{display:flex;gap:8px;}
+  .chip{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px 6px;text-align:center;}
+  .chip span{display:block;font-size:10px;color:var(--muted);letter-spacing:.08em;}
+  .chip b{font-size:19px;font-weight:900;}
+  .chip b.gold{color:var(--gold);}
+
+  .timewrap{height:9px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;}
+  .timebar{height:100%;width:100%;background:linear-gradient(90deg,#46e6a0,#5ad1ff);transition:width .2s linear;}
+  .timebar.low{background:linear-gradient(90deg,#ff6b8b,#ffb14e);}
+
+  .goal{text-align:center;font-size:14px;font-weight:800;letter-spacing:.03em;}
+  .goal b{color:var(--gold);font-size:17px;}
+  .goal .pip{font-size:15px;color:rgba(255,255,255,.22);display:inline-block;}
+  .goal .pip.on{color:var(--gold);text-shadow:0 0 8px rgba(255,215,94,.7);}
+  .goal .pip.pop{animation:pippop .45s ease;}
+  @keyframes pippop{0%{transform:scale(1);}35%{transform:scale(1.85);filter:drop-shadow(0 0 8px var(--gold));}100%{transform:scale(1);}}
+  .goal .cnt{color:var(--muted);font-size:12px;}
+
+  .handbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#3a2f5e,#231a44);
+    border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:9px 14px;min-height:50px;}
+  .handbar .cnt{font-size:13px;color:var(--muted);font-weight:800;min-width:42px;}
+  .handbar .name{font-size:20px;font-weight:900;line-height:1;}
+  .handbar .name.ok{color:var(--good);}
+  .handbar .res{margin-left:auto;font-size:20px;font-weight:900;color:var(--gold);}
+  .handbar .res.win{color:var(--good);}
+
+
+  .boardwrap{position:relative;width:100%;aspect-ratio:1/1;}
+  .board{position:absolute;inset:0;display:grid;gap:7px;padding:7px;border-radius:20px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);touch-action:none;}
+  .card{position:relative;border-radius:11px;background:linear-gradient(180deg,#fff,#e7ecf3);
+    box-shadow:inset 0 -3px 0 rgba(0,0,0,.12),0 3px 7px rgba(0,0,0,.4);
+    color:#1a1f33;transition:transform .08s ease;overflow:hidden;}
+  .card .rk{position:absolute;top:4px;left:6px;font-size:clamp(13px,4.4vw,20px);font-weight:900;line-height:1;}
+  .card .su{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(22px,9vw,40px);line-height:1;}
+  .card.red{color:#e0344a;}
+  .card.top{box-shadow:inset 0 0 0 2px var(--gold),inset 0 -3px 0 rgba(0,0,0,.12),0 0 14px rgba(255,215,94,.7);}
+  .card.sel{transform:scale(.9);box-shadow:inset 0 0 0 3px var(--accent),0 0 16px rgba(90,209,255,.7);}
+  .card.win{box-shadow:inset 0 0 0 3px var(--good),0 0 20px rgba(70,230,160,.9);}
+  .card.merged{animation:mpop .34s cubic-bezier(.2,.9,.3,1.4) both;}
+  @keyframes mpop{0%{transform:scale(.3);}55%{transform:scale(1.18);}100%{transform:scale(1);}}
+  .card.fall{animation:drop .3s cubic-bezier(.2,.9,.3,1.12) both;}
+  @keyframes drop{from{transform:translateY(var(--from,-60%));opacity:0;}to{transform:translateY(0);opacity:1;}}
+  svg.lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+
+  .hint{text-align:center;font-size:12px;color:var(--muted);min-height:15px;line-height:1.4;}
+  button{font-family:inherit;font-weight:800;font-size:14px;color:var(--text);
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px;cursor:pointer;width:100%;}
+  button:active{transform:scale(.97);}
+
+  /* 残り時間の危険演出（背景の段階赤化＋鼓動＋節目フラッシュ・派手版） */
+  #dangerWash,#dangerPulse,#dangerFlash{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;}
+  #dangerWash{transition:opacity .7s ease, background .7s ease;}
+  #dangerPulse{background:radial-gradient(105% 105% at 50% 50%, rgba(255,0,0,0) 34%, rgba(255,30,30,.78) 100%);}
+  #dangerPulse.beat1{animation:beatpulse .6s ease-out;}
+  @keyframes beatpulse{0%{opacity:0;}26%{opacity:.92;}100%{opacity:0;}}
+  #dangerFlash{background:radial-gradient(120% 120% at 50% 55%, rgba(255,60,45,0) 18%, rgba(255,40,30,.97) 100%);}
+  #dangerFlash.punch{animation:dpunch .55s ease-out;}
+  @keyframes dpunch{0%{opacity:0;}14%{opacity:.95;}100%{opacity:0;}}
+  .chip.danger{border-color:rgba(255,85,70,.6);box-shadow:0 0 16px rgba(255,60,50,.45);}
+  .chip.danger b{color:#ff6b5a;}
+  #time{display:inline-block;}
+  #time.tpop{animation:tpop .4s ease;}
+  @keyframes tpop{0%{transform:scale(1);}40%{transform:scale(1.45);color:#fff;}100%{transform:scale(1);}}
+  .boardwrap.shake{animation:shk .32s ease;}
+  @keyframes shk{0%,100%{transform:translateX(0);}20%{transform:translateX(-4px);}60%{transform:translateX(4px);}80%{transform:translateX(-2px);}}
+
+  /* 昇天演出 */
+  .ascend-star{position:fixed;z-index:50;pointer-events:none;font-size:60px;line-height:1;
+    text-shadow:0 0 30px rgba(255,215,94,.9),0 0 60px rgba(255,215,94,.6);will-change:transform,opacity;}
+  @keyframes ascend{0%{transform:translate(-50%,-50%) scale(.3);opacity:0;}
+    15%{transform:translate(-50%,-50%) scale(1.3);opacity:1;}
+    100%{transform:translate(-50%,calc(-50% - 90vh)) scale(.9);opacity:0;}}
+  #flash{position:fixed;inset:0;z-index:49;background:radial-gradient(circle at 50% 60%, rgba(255,240,200,.55), transparent 60%);opacity:0;pointer-events:none;}
+  #flash.show{animation:flash .8s ease;}
+  @keyframes flash{0%{opacity:0;}20%{opacity:1;}100%{opacity:0;}}
+  #flash.soft{animation:flashsoft .5s ease;}
+  @keyframes flashsoft{0%{opacity:0;}30%{opacity:.55;}100%{opacity:0;}}
+  .ring{position:fixed;z-index:48;pointer-events:none;border-radius:50%;border:3px solid var(--gold);
+    box-shadow:0 0 18px rgba(255,215,94,.85),inset 0 0 14px rgba(255,215,94,.5);
+    transform:translate(-50%,-50%) scale(.2);opacity:0;}
+  .ring.go{animation:ringfx .5s ease-out forwards;}
+  @keyframes ringfx{0%{transform:translate(-50%,-50%) scale(.25);opacity:.95;}100%{transform:translate(-50%,-50%) scale(2.6);opacity:0;}}
+  #toast{position:fixed;left:50%;top:30%;transform:translateX(-50%);text-align:center;font-weight:900;font-size:40px;color:var(--gold);
+    opacity:0;pointer-events:none;z-index:51;text-shadow:0 4px 20px rgba(0,0,0,.5);}
+  #toast.show{animation:ts .9s ease;}
+  @keyframes ts{0%{opacity:0;transform:translateX(-50%) scale(.5);}25%{opacity:1;transform:translateX(-50%) scale(1.1);}100%{opacity:0;transform:translateX(-50%) scale(1) translateY(-24px);}}
+
+  /* オーバーレイ（クリア/タイムアップ） */
+  #overlay{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    background:rgba(8,6,20,.84);padding:28px;text-align:center;}
+  #overlay.show{display:flex;}
+  #overlay .big{font-size:32px;font-weight:900;color:var(--gold);text-shadow:0 4px 20px rgba(0,0,0,.5);}
+  #overlay .big.lose{color:var(--bad);}
+  #overlay .sub{font-size:14px;color:var(--muted);max-width:300px;line-height:1.5;}
+  #overlay button{width:auto;min-width:220px;padding:14px 24px;}
+  #overlay #ovBtn2{min-width:150px;padding:10px 18px;font-size:13px;background:transparent;border-color:rgba(255,255,255,.16);color:var(--muted);}
+  .conts{text-align:right;font-size:11px;color:var(--muted);letter-spacing:.14em;margin-top:2px;min-height:14px;}
+  .conts b{color:var(--gold);font-size:13px;letter-spacing:.06em;}
+  .conts.low b{color:var(--bad);}
+
+  /* ===== v2.1 UIリフレッシュ ===== */
+  /* ミニカード（共通部品） */
+  .mini{
+    width:30px;height:40px;border-radius:6px;
+    background:linear-gradient(180deg,#f4f1ea,#ddd8cc);
+    display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+    font-weight:900;color:#1c1c28;line-height:1;
+    box-shadow:0 2px 5px rgba(0,0,0,.35);
+  }
+  .mini.red{color:#c0392b;}
+  .mini .mrk{font-size:13px;} .mini .msu{font-size:10px;}
+  .mini.ghost{opacity:.28;filter:grayscale(.4);}
+  .mini.lit{box-shadow:0 0 10px rgba(255,215,94,.7),0 2px 5px rgba(0,0,0,.35);outline:2px solid var(--gold);}
+
+  /* 上部バー：St + 目標 + 時間 */
+  .topbar{display:flex;align-items:center;gap:10px;}
+  .topbar .stno{font-size:13px;font-weight:900;color:var(--muted);letter-spacing:.08em;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:6px 12px;}
+  .topbar .timechip{margin-left:auto;font-size:15px;font-weight:900;color:var(--text);
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:6px 12px;min-width:54px;text-align:center;}
+
+  /* 目標：カード絵5枚 */
+  .goalcards{display:flex;align-items:center;justify-content:center;gap:6px;padding:2px 0;}
+  .goalcards .arrow{font-size:14px;color:var(--gold);font-weight:900;margin-left:2px;}
+  .goalcards .star{font-size:18px;}
+
+  /* 役プレビュー（盤面直上）：つないだ枚数 + 変化後カード */
+  .handbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#3a2f5e,#231a44);
+    border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:8px 14px;min-height:56px;}
+  .handbar .preview{display:flex;align-items:center;gap:8px;margin-left:auto;}
+  .handbar .preview .parrow{font-size:16px;color:var(--muted);font-weight:900;}
+  .handbar .preview .mini.win-glow{outline:2px solid var(--good);box-shadow:0 0 12px rgba(70,230,160,.6);}
+  .handbar .preview .starbig{font-size:26px;filter:drop-shadow(0 0 8px rgba(255,215,94,.8));}
+
+  /* 初回チュートリアル */
+  #tutorial{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
+    background:rgba(8,6,20,.9);padding:24px;}
+  #tutorial.show{display:flex;}
+  .tut-card{width:min(86vw,340px);background:linear-gradient(180deg,#231a44,#171130);
+    border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:26px 22px;text-align:center;}
+  .tut-step{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0;}
+  .tut-step .t-em{font-size:26px;}
+  .tut-step .t-arrow{color:var(--muted);font-size:18px;}
+  .tut-label{font-size:13px;font-weight:800;color:var(--text);margin-bottom:2px;}
+  .tut-sub{font-size:11px;color:var(--muted);}
+  #tutorial button{margin-top:14px;}
+
+  /* タイトル画面 */
+  #title{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    background:radial-gradient(120% 120% at 50% 0%, #231a44 0%, #0f0c22 60%);}
+  #title.hide{display:none;}
+  #title .t-logo{font-size:clamp(34px,10vw,48px);font-weight:900;line-height:1.2;text-align:center;
+    text-shadow:0 0 36px rgba(255,215,94,.45),0 2px 8px rgba(0,0,0,.6);}
+  #title .t-logo .gold{color:var(--gold);}
+  #title .t-sub{font-size:12px;letter-spacing:.2em;color:var(--muted);margin-bottom:26px;}
+  #title .t-cards{display:flex;gap:8px;margin-bottom:30px;}
+  #title .t-cards .mini{width:40px;height:54px;}
+  #title .t-cards .mini .mrk{font-size:17px;} #title .t-cards .mini .msu{font-size:13px;}
+  @keyframes tbob{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+  #title .t-cards .mini:nth-child(1){animation:tbob 2.4s .0s ease-in-out infinite;}
+  #title .t-cards .mini:nth-child(2){animation:tbob 2.4s .2s ease-in-out infinite;}
+  #title .t-cards .mini:nth-child(3){animation:tbob 2.4s .4s ease-in-out infinite;}
+  #title .t-cards .mini:nth-child(4){animation:tbob 2.4s .6s ease-in-out infinite;}
+  #title .t-cards .mini:nth-child(5){animation:tbob 2.4s .8s ease-in-out infinite;}
+  #title button{min-width:220px;}
+  #title .t-ver{position:absolute;bottom:max(env(safe-area-inset-bottom),14px);font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.1em;}
+  #title .t-sec{min-width:200px;background:transparent;border-color:rgba(255,255,255,.16);color:var(--muted);font-size:13px;padding:11px;margin-top:4px;}
+
+  /* ===== ワールド・ポーカー・ツアー：入国スタンプ ＆ パスポート ===== */
+  #stampStage{display:none;flex-direction:column;align-items:center;gap:8px;}
+  #stampStage.show{display:flex;}
+  .stamp{--col:#ffd75e;width:150px;height:150px;border-radius:20px;border:3px solid var(--col);color:var(--col);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;position:relative;
+    background:rgba(20,16,44,.55);box-shadow:inset 0 0 0 2px rgba(255,255,255,.06),0 6px 24px rgba(0,0,0,.4);transform:rotate(-7deg);}
+  .stamp.gold{--col:#ffd75e;} .stamp.silver{--col:#d7def0;} .stamp.bronze{--col:#e09a5c;}
+  .stamp .s-ring{position:absolute;inset:7px;border:1.5px dashed var(--col);border-radius:14px;opacity:.5;}
+  .stamp .s-flag{font-size:38px;line-height:1;}
+  .stamp .s-iata{font-size:27px;font-weight:900;letter-spacing:.14em;margin-top:2px;}
+  .stamp .s-city{font-size:11px;font-weight:800;color:var(--text);opacity:.82;letter-spacing:.03em;}
+  .stamp .s-medal{position:absolute;top:-13px;right:-13px;font-size:30px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));}
+  .stamp.slam{animation:stampslam .55s cubic-bezier(.2,1.5,.35,1) both;}
+  @keyframes stampslam{0%{transform:rotate(-7deg) scale(2.6);opacity:0;}55%{opacity:1;}72%{transform:rotate(-7deg) scale(.9);}100%{transform:rotate(-7deg) scale(1);opacity:1;}}
+  .stamp-cap{font-size:10px;letter-spacing:.34em;color:var(--muted);font-weight:800;}
+
+  #passport{position:fixed;inset:0;z-index:95;display:none;flex-direction:column;align-items:center;
+    background:radial-gradient(130% 130% at 50% 0%, #2a2150 0%, #161033 55%, var(--bg) 100%);
+    padding:calc(env(safe-area-inset-top) + 18px) 14px calc(env(safe-area-inset-bottom) + 18px);overflow:auto;}
+  #passport.show{display:flex;}
+  #passport .pp-wrap{width:min(94vw,440px);display:flex;flex-direction:column;gap:12px;}
+  .pp-title{text-align:center;font-size:24px;font-weight:900;letter-spacing:.06em;}
+  .pp-title .gold{color:var(--gold);}
+  .pp-sub{text-align:center;font-size:11px;letter-spacing:.26em;color:var(--muted);margin-top:-8px;}
+  .pp-prog{text-align:center;font-size:13px;font-weight:800;color:var(--text);}
+  .pp-prog b{color:var(--gold);font-size:19px;}
+  .pp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .pp-cell{position:relative;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.04);
+    padding:10px 4px 12px;min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+  .pp-cell .c-flag{font-size:25px;line-height:1;}
+  .pp-cell .c-iata{font-size:14px;font-weight:900;letter-spacing:.1em;}
+  .pp-cell .c-city{font-size:9px;color:var(--muted);}
+  .pp-cell .c-medal{position:absolute;top:3px;right:5px;font-size:15px;}
+  .pp-cell.done{border-color:rgba(255,215,94,.4);}
+  .pp-cell.next{border-color:var(--gold);box-shadow:0 0 14px rgba(255,215,94,.4);}
+  .pp-cell .c-tag{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:900;color:var(--gold);letter-spacing:.08em;white-space:nowrap;}
+  .pp-cell.locked{opacity:.32;}
+  .pp-cell.locked .c-flag{filter:grayscale(1);}
+  #passport .pp-close{margin-top:8px;}
+
+  /* ===== マージチェイン（役成立で1秒フリーズ→連鎖） ===== */
+  #chainHud{position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;
+    display:none;flex-direction:column;align-items:center;gap:4px;}
+  #chainHud.show{display:flex;}
+  .ch-pill{background:rgba(16,26,52,.94);border:1.6px solid var(--accent);border-radius:999px;
+    padding:5px 15px;font-weight:900;font-size:16px;color:var(--accent);letter-spacing:.03em;white-space:nowrap;
+    box-shadow:0 0 18px rgba(90,209,255,.55),0 2px 8px rgba(0,0,0,.4);}
+  .ch-pill .ch-lab{font-size:11px;letter-spacing:.2em;opacity:.85;}
+  .ch-pill.pop{animation:chpop .18s ease;}
+  @keyframes chpop{0%{transform:scale(.7);}60%{transform:scale(1.14);}100%{transform:scale(1);}}
+  .ch-gauge{width:92px;height:5px;border-radius:3px;background:rgba(255,255,255,.16);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.4);}
+  .ch-fill{height:100%;width:100%;background:linear-gradient(90deg,#5ad1ff,#46e6a0);}
+  #time.frozen{color:var(--accent);text-shadow:0 0 12px rgba(90,209,255,.8);}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">マージ＆昇天</div>
+      <div class="score"><div class="label">SCORE</div><div class="val" id="score">0</div></div>
+    </header>
+    <div class="conts" id="conts"></div>
+    <div class="topbar">
+      <div class="stno">St <b id="stageNo">1</b></div>
+      <div class="goalcards" id="goal"></div>
+      <div class="timechip" id="time">90</div>
+    </div>
+    <div class="timewrap"><div class="timebar" id="timebar"></div></div>
+    <div class="handbar">
+      <div class="cnt"><span id="cnt">0</span>/5</div>
+      <div class="name" id="handName">5枚つなごう</div>
+      <div class="res" id="res" style="display:none;"></div>
+      <div class="preview" id="preview"></div>
+    </div>
+    <div class="boardwrap">
+      <div class="board" id="board"></div>
+      <svg class="lines" id="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline id="poly" fill="none" stroke="#5ad1ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
+      </svg>
+      <div id="chainHud">
+        <div class="ch-pill"><span class="ch-lab">CHAIN</span> <span class="ch-x" id="chainX">×1</span></div>
+        <div class="ch-gauge"><div class="ch-fill" id="chainFill"></div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;"><button id="reset">はじめから</button><button id="toMenu">タイトルへ</button></div>
+    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.5</div>
+  </div>
+
+  <!-- タイトル画面 -->
+  <div id="title">
+    <div class="t-logo">マージ<span class="gold">＆</span>昇天</div>
+    <div class="t-sub">MERGE & ASCEND</div>
+    <div class="t-cards">
+      <div class="mini"><span class="mrk">6</span><span class="msu">♠</span></div>
+      <div class="mini red"><span class="mrk">8</span><span class="msu">♥</span></div>
+      <div class="mini"><span class="mrk">10</span><span class="msu">♣</span></div>
+      <div class="mini red"><span class="mrk">Q</span><span class="msu">♦</span></div>
+      <div class="mini"><span class="mrk">A</span><span class="msu">♠</span></div>
+    </div>
+    <button id="titleStart">はじめる</button>
+    <button id="titlePass" class="t-sec">パスポート ✈</button>
+    <div class="t-ver">v2.5</div>
+  </div>
+
+  <!-- パスポート（ワールド・ポーカー・ツアー） -->
+  <div id="passport">
+    <div class="pp-wrap">
+      <div class="pp-title">PASS<span class="gold">PORT</span></div>
+      <div class="pp-sub">WORLD POKER TOUR</div>
+      <div class="pp-prog" id="ppProg"></div>
+      <div class="pp-grid" id="ppGrid"></div>
+      <button class="pp-close" id="ppClose">とじる</button>
+    </div>
+  </div>
+
+  <!-- 初回チュートリアル -->
+  <div id="tutorial">
+    <div class="tut-card">
+      <div style="font-size:20px;font-weight:900;margin-bottom:6px;">あそびかた</div>
+      <div class="tut-step">
+        <div><div class="tut-label">① つなぐ</div><div class="t-em">🃏🃏🃏🃏🃏</div><div class="tut-sub">隣りあう5枚をなぞる</div></div>
+      </div>
+      <div class="tut-step">
+        <div><div class="tut-label">② 役で育つ</div><div class="t-em">🃏 <span class="t-arrow">→</span> 💪</div><div class="tut-sub">強い役ほど上のカードに</div></div>
+      </div>
+      <div class="tut-step">
+        <div><div class="tut-label">③ 目標カード×5＝★クリア</div><div class="t-em">🌟</div><div class="tut-sub">目標の札は出ない。自分で作る</div></div>
+      </div>
+      <button id="tutOk">わかった！</button>
+    </div>
+  </div>
+  <div id="dangerWash"></div>
+  <div id="dangerPulse"></div>
+  <div id="dangerFlash"></div>
+  <div id="flash"></div>
+  <div id="toast"></div>
+  <div id="overlay"><div id="stampStage"><div class="stamp" id="stampCard"></div><div class="stamp-cap">入 国 ス タ ン プ</div></div><div class="big"></div><div class="sub"></div><button id="ovBtn"></button><button id="ovBtn2" style="display:none"></button></div>
+
+<script>
+(() => {
+  const N=5;
+  const boardEl=document.getElementById('board'), polyEl=document.getElementById('poly');
+  const scoreEl=document.getElementById('score'), cntEl=document.getElementById('cnt');
+  const nameEl=document.getElementById('handName'), resEl=document.getElementById('res');
+  const stageNoEl=document.getElementById('stageNo');
+  const timeEl=document.getElementById('time'), timebarEl=document.getElementById('timebar'), goalEl=document.getElementById('goal');
+  const overlayEl=document.getElementById('overlay'), contsEl=document.getElementById('conts');
+  boardEl.style.gridTemplateColumns=`repeat(${N},1fr)`; boardEl.style.gridTemplateRows=`repeat(${N},1fr)`;
+
+  const SUITS=['♠','♥','♦','♣'], RANKLBL={2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',11:'J',12:'Q',13:'K',14:'A'};
+  const rnd=n=>Math.floor(Math.random()*n), wait=ms=>new Promise(z=>setTimeout(z,ms));
+
+  // ===== ステージ定義（天井＝目標カード／制限時間 秒） =====
+  const STAGES=[
+    {top:6,  time:90 },   // 1
+    {top:7,  time:90 },   // 2
+    {top:8,  time:100},   // 3
+    {top:9,  time:100},   // 4
+    {top:10, time:110},   // 5
+    {top:11, time:120},   // 6 (J)
+    {top:12, time:120},   // 7 (Q)
+    {top:13, time:130},   // 8 (K)
+    {top:14, time:160},   // 9 (A) 激ムズ
+  ];
+  let stageIdx=0, stage=STAGES[0];
+
+  let grid=[], path=[], dragging=false, inputLocked=false, score=0;
+
+  // 補充：そのステージの 2〜(top-1) を低めに寄せる（天井は出さない＝作るしかない）
+  function genCard(){
+    const lo=Math.max(2, stage.top-7), hi=stage.top-1, span=hi-lo+1; // 高ステージほど下限が上がる＝2,3が出にくく
+    const r=lo+Math.min(rnd(span),rnd(span)); // 2つの乱数の小さい方＝（バンド内の）低札に偏る
+    return {r, s:rnd(4)};
+  }
+
+  // ---- 補充（その場生成。先読みNEXTは廃止＝見る間がないため v2.5） ----
+  function refillCard(){ return genCard(); }
+
+  // ---- 役判定 ----
+  function isStraight(rk){const u=[...new Set(rk)];if(u.length!==5)return false;const s=u.slice().sort((a,b)=>a-b);return s[4]-s[0]===4||s.join(',')==='2,3,4,5,14';}
+  function evalHand(cards){const n=cards.length,rc={},sc={};cards.forEach(c=>{rc[c.r]=(rc[c.r]||0)+1;sc[c.s]=(sc[c.s]||0)+1;});
+    const co=Object.values(rc).sort((a,b)=>b-a); if(co[0]===5)return'five';
+    const fl=n===5&&Object.keys(sc).length===1, st=n===5&&isStraight(cards.map(c=>c.r));
+    if(st&&fl){const rs=[...new Set(cards.map(c=>c.r))].sort((a,b)=>a-b);return(rs[0]===10&&rs[4]===14)?'royal':'sflush';}
+    if(co[0]===4)return'four'; if(co[0]===3&&co[1]===2)return'full'; if(fl)return'flush'; if(st)return'straight';
+    if(co[0]===3)return'trips'; if(co[0]===2&&co[1]===2)return'twopair'; if(co[0]===2)return'pair'; return'high';}
+  const HANDNAME={five:'ファイブカード',royal:'ロイヤル',sflush:'ストフラ',four:'フォーカード',full:'フルハウス',flush:'フラッシュ',straight:'ストレート',trips:'スリーカード',twopair:'ツーペア',pair:'ワンペア',high:'—'};
+
+  // 役 → 残る1枚（天井 stage.top で頭打ち。目標カード5枚＝★クリア）
+  function mergeResult(cards, key){
+    const T=stage.top;
+    const rc={}; cards.forEach(c=>rc[c.r]=(rc[c.r]||0)+1);
+    const ent=Object.entries(rc).map(([r,n])=>[+r,n]).sort((a,b)=>b[1]-a[1]||b[0]-a[0]);
+    const dom=ent[0][0], mx=Math.max(...cards.map(c=>c.r));
+    if(key==='five'){ return dom===T ? {ascend:true} : {rank:T}; }   // 目標5枚=★ / それ以外の5カード=目標札を1枚生成
+    const BUMP={pair:1,twopair:1,trips:2,straight:2,flush:2,full:3,four:3,sflush:4,royal:4};
+    const base=(key==='straight'||key==='flush'||key==='sflush'||key==='royal')?mx:dom;
+    return {rank: Math.min(T, base+(BUMP[key]||1))};
+  }
+
+  // ---- 音 ----
+  const Snd=(()=>{let ctx=null,m=null;
+    function ac(){if(!ctx){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;ctx=new A();m=ctx.createGain();m.gain.value=.7;const comp=ctx.createDynamicsCompressor();m.connect(comp);comp.connect(ctx.destination);}if(ctx.state!=='running')ctx.resume();return ctx;}
+    // 1音をオーディオ時計の絶対時刻 when（省略=即時）に予約。setTimeout不使用＝メインスレッドのジャンクに左右されない
+    function t(f,ty,d,g,sl,when){if(!ac())return;const n=(when!=null?when:ctx.currentTime);const o=ctx.createOscillator(),gn=ctx.createGain();o.type=ty;o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(sl,n+d);gn.gain.setValueAtTime(.0001,n);gn.gain.linearRampToValueAtTime(g,n+.005);gn.gain.exponentialRampToValueAtTime(.0001,n+d);o.connect(gn).connect(m);o.start(n);o.stop(n+d+.05);}
+    // 連続音もまとめてオーディオ時計に予約
+    function seq(notes,ty,d,g,gap,sl){if(!ac())return;const n=ctx.currentTime;notes.forEach((f,i)=>t(f,ty,d,g,sl,n+i*gap));}
+    return{ensure:ac,tick:k=>t(320+Math.min(k,5)*60,'triangle',.04,.14),
+      merge:r=>t(300+r*40,'triangle',.14,.32,500+r*60),
+      top:(lvl=1)=>{const roots=[523,587,659,740,880];const root=roots[Math.min(Math.max(lvl,1),5)-1];seq([root,root*1.5],'triangle',.16,.4,.08);},
+      ascend:()=>seq([523,659,784,1047,1319],'sine',.5,.36,.11),
+      bad:()=>seq([392,294,196],'sawtooth',.24,.3,.12),
+      timetick:(strong)=>t(strong?900:680,'square',.05,strong?.42:.26,strong?540:null)};})();
+
+  function newGrid(){ grid=Array.from({length:N},()=>Array.from({length:N},()=>genCard())); }
+
+  function render(motion){
+    boardEl.innerHTML='';
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){const card=grid[r][c];const el=document.createElement('div');
+      el.className='card'+((card&&(card.s===1||card.s===2))?' red':'')+((card&&card.r===stage.top)?' top':'');
+      el.dataset.r=r;el.dataset.c=c;
+      if(card==null)el.style.visibility='hidden'; else { el.innerHTML=`<span class="rk">${RANKLBL[card.r]}</span><span class="su">${SUITS[card.s]}</span>`; el.dataset.v=RANKLBL[card.r]; }
+      boardEl.appendChild(el);}
+    if(motion){const s=boardEl.querySelector('.card');const h=s?s.offsetHeight:50,gap=7;
+      boardEl.querySelectorAll('.card').forEach(el=>{const mo=motion[+el.dataset.r][+el.dataset.c];
+        if(mo>0){el.style.setProperty('--from',`-${mo*(h+gap)}px`);el.classList.add('fall');}});}
+    updateGoal();
+  }
+  const cardEl=(r,c)=>boardEl.querySelector(`.card[data-r="${r}"][data-c="${c}"]`);
+  const pathCards=()=>path.map(p=>grid[p.r][p.c]);
+
+  // ミニカードHTML（共通部品）
+  function miniCard(rank, suit, cls=''){
+    const red=(suit===1||suit===2);
+    return `<div class="mini${red?' red':''}${cls?' '+cls:''}"><span class="mrk">${RANKLBL[rank]}</span><span class="msu">${suit!=null?SUITS[suit]:''}</span></div>`;
+  }
+
+  function updateGoal(){
+    const cnt=countTop();
+    const have=Math.min(cnt,5);
+    // 目標カード5枚：集めた分だけ点灯（pipクラスはtopCardFx互換のため維持）
+    let html='';
+    for(let i=0;i<5;i++){
+      html+=`<span class="pip ${i<have?'on':''}">${miniCard(stage.top, null, i<have?'lit':'ghost')}</span>`;
+    }
+    html+=`<span class="arrow">→</span><span class="star">${have>=5?'🌟':'⭐'}</span>`;
+    goalEl.innerHTML=html;
+  }
+
+  function updateVisual(){
+    const cards=pathCards(); cntEl.textContent=cards.length;
+    const key=cards.length?evalHand(cards):'high';
+    const valid=cards.length===5&&key!=='high';
+    nameEl.textContent = cards.length===0?'5枚つなごう':(cards.length<5?HANDNAME[key]+'…':HANDNAME[key]);
+    nameEl.className='name'+(valid?' ok':'');
+    const pv=document.getElementById('preview');
+    if(valid){
+      const m=mergeResult(cards,key);
+      if(m.ascend){ pv.innerHTML=`<span class="parrow">→</span><span class="starbig">🌟</span>`; }
+      else { pv.innerHTML=`<span class="parrow">→</span>${miniCard(m.rank, null, m.rank===stage.top?'lit':'win-glow')}`; }
+    } else { pv.innerHTML=''; }
+    boardEl.querySelectorAll('.card').forEach(el=>el.classList.remove('sel','win'));
+    path.forEach(p=>{const el=cardEl(p.r,p.c); if(el){el.classList.add('sel'); if(valid)el.classList.add('win');}});
+    if(path.length<1){polyEl.setAttribute('opacity','0');return;}
+    const u=100/N; polyEl.setAttribute('points',path.map(p=>`${(p.c+0.5)*u},${(p.r+0.5)*u}`).join(' '));
+    polyEl.setAttribute('opacity','0.9'); polyEl.setAttribute('stroke',valid?'#46e6a0':'#5ad1ff');
+  }
+
+  function cellFromPoint(x,y){const el=document.elementFromPoint(x,y);if(!el)return null;const c=el.closest('.card');if(!c||c.style.visibility==='hidden')return null;return{r:+c.dataset.r,c:+c.dataset.c};}
+  const adjacent=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1, inPath=p=>path.some(q=>q.r===p.r&&q.c===p.c);
+  function start(x,y){ if(inputLocked)return; const p=cellFromPoint(x,y); if(!p)return; dragging=true; path=[p]; Snd.tick(1); updateVisual(); }
+  function move(x,y){ if(!dragging)return; const p=cellFromPoint(x,y); if(!p)return; const last=path[path.length-1];
+    if(last.r===p.r&&last.c===p.c)return;
+    if(path.length>=2){const prev=path[path.length-2];if(prev.r===p.r&&prev.c===p.c){path.pop();updateVisual();return;}}
+    if(inPath(p))return; if(!adjacent(last,p))return; if(path.length>=5)return;
+    path.push(p); Snd.tick(path.length); updateVisual(); }
+  async function end(){ if(!dragging)return; dragging=false;
+    const cards=pathCards(); const key=cards.length?evalHand(cards):'high';
+    if(cards.length===5&&key!=='high'){ await doMerge(key); }
+    else { path=[]; updateVisual(); if(frozen) endFreeze(); } }   // フリーズ中に役を作れず離した＝連鎖終了
+
+  function applyGravity(){const motion=Array.from({length:N},()=>Array(N).fill(0));
+    for(let c=0;c<N;c++){const surv=[];for(let r=N-1;r>=0;r--)if(grid[r][c]!=null)surv.push({row:r,val:grid[r][c]});const holes=N-surv.length;
+      for(let r=N-1;r>=0;r--){const idx=N-1-r;if(idx<surv.length){grid[r][c]=surv[idx].val;motion[r][c]=r-surv[idx].row;}else{grid[r][c]=refillCard();motion[r][c]=holes;}}}return motion;}
+
+  function flashToast(txt){const t=document.getElementById('toast');t.textContent=txt;t.classList.remove('show');void t.offsetWidth;t.classList.add('show');}
+
+  function clearHandUI(){ path=[]; polyEl.setAttribute('opacity','0'); document.getElementById('preview').innerHTML=''; nameEl.textContent='5枚つなごう'; nameEl.className='name'; cntEl.textContent='0'; }
+
+  function countTop(){ let n=0; for(let r=0;r<N;r++)for(let c=0;c<N;c++) if(grid[r][c]&&grid[r][c].r===stage.top) n++; return n; }
+
+  // ① 集約の“吸い込み”：消える4枚を集約先へシュッと吸わせる
+  async function gatherAnim(end){
+    const endEl=cardEl(end.r,end.c); if(!endEl) return;
+    const er=endEl.getBoundingClientRect(), ecx=er.left+er.width/2, ecy=er.top+er.height/2;
+    path.forEach(p=>{ const el=cardEl(p.r,p.c); if(!el) return;
+      if(p.r===end.r&&p.c===end.c){ el.style.transition='transform .15s ease'; el.style.transform='scale(1.12)'; el.style.zIndex='6'; return; }
+      const b=el.getBoundingClientRect(), dx=ecx-(b.left+b.width/2), dy=ecy-(b.top+b.height/2);
+      el.style.transition='transform .16s cubic-bezier(.5,0,1,.5),opacity .16s ease';
+      el.style.transform=`translate(${dx}px,${dy}px) scale(.22)`; el.style.opacity='0'; el.style.zIndex='4'; });
+    await wait(150);
+  }
+
+  // ② 天井札を作った瞬間の特別演出（金リング波紋・ソフト金フラ・進捗ピップpop・バイブ・上昇チャイム）
+  function topCardFx(el, count){
+    if(el){ const r=el.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+      const ring=document.createElement('div'); ring.className='ring'; const sz=r.width*1.15;
+      ring.style.width=sz+'px'; ring.style.height=sz+'px'; ring.style.left=cx+'px'; ring.style.top=cy+'px';
+      document.body.appendChild(ring); requestAnimationFrame(()=>ring.classList.add('go')); setTimeout(()=>ring.remove(),560); }
+    const fl=document.getElementById('flash'); fl.classList.remove('soft'); void fl.offsetWidth; fl.classList.add('soft'); setTimeout(()=>fl.classList.remove('soft'),520);
+    const ons=goalEl.querySelectorAll('.pip.on'); const last=ons[ons.length-1]; if(last) last.classList.add('pop');
+    try{ navigator.vibrate && navigator.vibrate(Math.min(55,18+count*9)); }catch(e){}
+    Snd.top(count);
+  }
+
+  async function doMerge(key){
+    inputLocked=true;
+    const cards=pathCards(); const m=mergeResult(cards,key);
+    if(m.ascend){ await winStage(); return; }
+    const end=path[path.length-1];
+    const endSuit=grid[end.r][end.c].s;
+    const isTop=(m.rank===stage.top);
+    await gatherAnim(end);                       // 吸い込み
+    path.forEach(p=> grid[p.r][p.c]=null);
+    grid[end.r][end.c]={r:m.rank, s:endSuit};
+    score += m.rank*2; scoreEl.textContent=score;
+    clearHandUI();
+    render();                                    // 集約結果をその場に表示（重力前）
+    const popEl=cardEl(end.r,end.c); if(popEl) popEl.classList.add('merged');  // ポップ
+    if(isTop) topCardFx(popEl, countTop()); else Snd.merge(m.rank);
+    await wait(isTop?480:240);
+    const mot=applyGravity(); render(mot);        // 重力で落とす
+    await wait(240); inputLocked=false;
+    armFreeze();                                  // 役成立＝1秒フリーズ（連鎖の起点／継続）
+  }
+
+  async function winStage(){
+    stopTimer(); clearDanger(); resetChain(); inputLocked=true;
+    try{ navigator.vibrate && navigator.vibrate([0,45,35,45,35,140]); }catch(e){}
+    const rects=path.map(p=>cardEl(p.r,p.c).getBoundingClientRect());
+    const cx=rects.reduce((a,r)=>a+r.left+r.width/2,0)/rects.length;
+    const cy=rects.reduce((a,r)=>a+r.top+r.height/2,0)/rects.length;
+    document.getElementById('flash').classList.add('show');
+    path.forEach(p=>{const el=cardEl(p.r,p.c); if(el)el.classList.add('win');});
+    const star=document.createElement('div'); star.className='ascend-star'; star.textContent='⭐';
+    star.style.left=cx+'px'; star.style.top=cy+'px';
+    star.style.animation='ascend 1.3s cubic-bezier(.4,0,.6,1) forwards';
+    document.body.appendChild(star);
+    Snd.ascend(); flashToast('昇 天 ！');
+    score+=500; scoreEl.textContent=score;
+    await wait(1100);
+    setTimeout(()=>star.remove(),300);
+    document.getElementById('flash').classList.remove('show');
+    const last=stageIdx>=STAGES.length-1;
+    if(last){
+      const info=awardStamp();
+      if(info.idx>=0){
+        const ci=CITIES[info.idx];
+        let sub;
+        if(info.mode==='new')      sub='✈ '+ci.city+'（'+ci.spot+'）を制覇！ '+RANKJP[info.rank]+'の入国印を獲得。 パスポート '+info.total+' / '+CITIES.length+' 都市。';
+        else if(info.mode==='up')  sub='✈ '+ci.city+'を'+RANKJP[info.rank]+'に格上げ！ 全'+CITIES.length+'都市すでに制覇済み。 のこるは完全制覇のみ。';
+        else                       sub='✈ '+ci.city+'は既に'+RANKJP[info.rank]+'。 今回は更新ならず。 全'+CITIES.length+'都市 制覇済み。';
+        showOverlay('全クリア！ ✈ '+ci.c, sub, 'つぎの都市へ ✈',()=>{ hideStamp(); startPlay(); }, false, 'パスポートを見る',()=>{ hideStamp(); openPassport(); });
+        try{ Snd.top(5); }catch(e){}
+        try{ navigator.vibrate && navigator.vibrate([0,30,40,70]); }catch(e){}
+        showStamp(info.idx, info.rank);
+      } else {
+        showOverlay('🌍 世界制覇！','全'+CITIES.length+'都市すべて金の入国印。 もう向かうところ敵なし、伝説のマージ師。','もう一度旅に出る',()=>startPlay(),false);
+      }
+    }
+    else     showOverlay('ステージ '+(stageIdx+1)+' クリア！','つぎは天井「'+RANKLBL[STAGES[stageIdx+1].top]+'」に挑戦。','つぎのステージへ',()=>startStage(stageIdx+1),false);
+  }
+
+  // ---- タイマー ----
+  let timeLeft=0, timeTotal=0, timerId=null, running=false;
+  const dangerWash=document.getElementById('dangerWash'), dangerPulse=document.getElementById('dangerPulse'), dangerFlash=document.getElementById('dangerFlash');
+  const timeChip=timeEl.closest('.chip');
+  // 残り秒のバンド（≤60から10秒ごと）→ 一方向に赤く濃く（派手め）
+  const DANGER=[null,{op:.22,col:'255,110,40'},{op:.34,col:'255,85,35'},{op:.46,col:'255,62,30'},{op:.60,col:'255,45,28'},{op:.72,col:'255,30,26'},{op:.86,col:'255,20,20'}];
+  let lastDangerLevel=0, lastTickSec=-1, beatTimer=null;
+  function punchFlash(){ dangerFlash.classList.remove('punch'); void dangerFlash.offsetWidth; dangerFlash.classList.add('punch'); }
+  function popTime(){ timeEl.classList.remove('tpop'); void timeEl.offsetWidth; timeEl.classList.add('tpop'); }
+  function shakeBoard(){ const bw=document.querySelector('.boardwrap'); if(!bw)return; bw.classList.remove('shake'); void bw.offsetWidth; bw.classList.add('shake'); }
+  // 鼓動：視覚パルスとスマホ振動を“同じトリガー”で同期。残り時間で間隔が縮む＝加速
+  function beatLoop(){
+    if(!running || frozen || lastDangerLevel<4){ beatTimer=null; return; }
+    const period=Math.max(380, (timeLeft/26)*1000);                 // ms（減るほど短く）
+    dangerPulse.classList.remove('beat1'); void dangerPulse.offsetWidth;
+    dangerPulse.style.animationDuration=(period/1000).toFixed(2)+'s';
+    dangerPulse.classList.add('beat1');                              // 視覚の1拍
+    const v = lastDangerLevel>=6 ? 50 : (lastDangerLevel>=5 ? 38 : 26);
+    try{ navigator.vibrate && navigator.vibrate(v); }catch(e){}      // 同時に振動（※iOS Safariは非対応）
+    beatTimer=setTimeout(beatLoop, period);
+  }
+  function stopBeat(){ if(beatTimer){ clearTimeout(beatTimer); beatTimer=null; } dangerPulse.classList.remove('beat1'); }
+  function clearDanger(){ lastDangerLevel=0; lastTickSec=-1; stopBeat(); dangerWash.style.opacity=0; if(timeChip) timeChip.classList.remove('danger'); }
+  function updateDanger(sec){
+    const level = sec>60?0:Math.min(6, 1+Math.floor((60-sec)/10));
+    if(timeChip) timeChip.classList.toggle('danger', level>=1);
+    if(level!==lastDangerLevel){
+      const d=DANGER[level];
+      if(d){ dangerWash.style.opacity=d.op; dangerWash.style.background=`radial-gradient(120% 120% at 50% 62%, rgba(${d.col},0) 30%, rgba(${d.col},.97) 100%)`; }
+      else dangerWash.style.opacity=0;
+      if(level>lastDangerLevel && level>=1){ Snd.timetick(true); punchFlash(); popTime(); }  // 節目をドンと
+      lastDangerLevel=level;
+      if(level>=4){ if(!beatTimer) beatLoop(); } else stopBeat();    // 残り30秒〜で鼓動開始（自走で加速）
+    }
+    if(sec<=5 && sec>0 && sec!==lastTickSec){ lastTickSec=sec; Snd.timetick(false); popTime(); shakeBoard(); }      // ラスト5秒は毎秒＋振動
+  }
+  function startTimer(){ running=true; clearInterval(timerId);
+    timerId=setInterval(()=>{ if(!running)return; timeLeft-=0.2*(frozen?CHAIN_SLOW:1);   // チェイン中はスロー（止めずに減速）
+      if(timeLeft<=0){ timeLeft=0; updateTimer(); loseStage(); } else updateTimer(); },200);
+    updateTimer(); }
+  function stopTimer(){ running=false; clearInterval(timerId); timerId=null; }
+  function updateTimer(){ const sec=Math.ceil(timeLeft); timeEl.textContent=sec;
+    const p=timeTotal?Math.max(0,timeLeft/timeTotal):0; timebarEl.style.width=(p*100)+'%';
+    timebarEl.classList.toggle('low', timeLeft<=10);
+    updateDanger(sec); }
+
+  // ===== マージチェイン：役成立で CHAIN_FREEZE 秒フリーズ。その間に次のなぞりを“始め”れば連鎖 =====
+  const CHAIN_FREEZE=1.0;                 // フリーズ窓の秒数（次のなぞりを始めるまでの猶予）
+  const CHAIN_SLOW=0.25;                  // チェイン中のクロック速度（0=完全停止／1=通常）＝調整レバー
+  let frozen=false, chainCount=0, freezeLeft=0, freezeId=null;
+  const chainHud=document.getElementById('chainHud'), chainXEl=document.getElementById('chainX'),
+        chainFill=document.getElementById('chainFill'), chPill=chainHud.querySelector('.ch-pill');
+  function armFreeze(){                    // doMerge 成立ごとに呼ぶ（連鎖の起点＆継続）
+    chainCount++; frozen=true; freezeLeft=CHAIN_FREEZE;
+    stopBeat();                            // 時間が止まる＝鼓動も止める
+    timeEl.classList.add('frozen');
+    chainXEl.textContent='×'+chainCount;
+    chainHud.classList.add('show');
+    chPill.classList.remove('pop'); void chPill.offsetWidth; chPill.classList.add('pop');
+    chainFill.style.width='100%';
+    try{ Snd.tick(Math.min(chainCount+1,5)); }catch(e){}
+    if(!freezeId) freezeId=setInterval(freezeTick,50);
+  }
+  function freezeTick(){
+    if(!frozen){ clearInterval(freezeId); freezeId=null; return; }
+    if(dragging||inputLocked) return;      // 指を置いてる/演出中は減らない＝「始めれば停止」
+    freezeLeft-=0.05;
+    chainFill.style.width=Math.max(0,freezeLeft/CHAIN_FREEZE*100)+'%';
+    if(freezeLeft<=0) endFreeze();
+  }
+  function endFreeze(){                     // チェイン終了→クロック再開
+    frozen=false; chainCount=0;
+    if(freezeId){ clearInterval(freezeId); freezeId=null; }
+    chainHud.classList.remove('show'); timeEl.classList.remove('frozen');
+    if(running && lastDangerLevel>=4 && !beatTimer) beatLoop();   // 鼓動を戻す
+  }
+  function resetChain(){ frozen=false; chainCount=0; if(freezeId){clearInterval(freezeId);freezeId=null;} chainHud.classList.remove('show'); timeEl.classList.remove('frozen'); }
+
+  function loseStage(){ stopTimer(); clearDanger(); resetChain(); inputLocked=true; clearHandUI(); render(); Snd.bad();
+    if(continues>0){
+      showOverlay('タイムアップ…','コンティニューで同じステージに再挑戦（残り '+continues+' 回）',
+        'コンティニュー',()=>{ continues--; updateContinueUI(); startStage(stageIdx); }, true,
+        'タイトルへ',()=>{ toTitle(); });
+    } else {
+      showOverlay('ゲームオーバー','コンティニューを使い切りました（天井「'+RANKLBL[stage.top]+'」）。',
+        'はじめから',()=>startPlay(), true,
+        'タイトルへ',()=>{ toTitle(); });
+    }
+  }
+
+  // ---- オーバーレイ ----
+  function showOverlay(big,sub,btn,cb,lose,btn2,cb2){
+    hideStamp();
+    overlayEl.querySelector('.big').textContent=big;
+    overlayEl.querySelector('.big').className='big'+(lose?' lose':'');
+    overlayEl.querySelector('.sub').textContent=sub;
+    const b=document.getElementById('ovBtn'); b.textContent=btn;
+    b.onclick=()=>{ overlayEl.classList.remove('show'); cb(); };
+    const b2=document.getElementById('ovBtn2');
+    if(btn2){ b2.style.display=''; b2.textContent=btn2; b2.onclick=()=>{ overlayEl.classList.remove('show'); cb2(); }; }
+    else b2.style.display='none';
+    overlayEl.classList.add('show');
+  }
+
+  // ---- コンティニュー（1プレイ＝1ランにつき3回・繰り越し） ----
+  const CONTINUE_MAX=3; let continues=CONTINUE_MAX;
+  function updateContinueUI(){
+    const dots=Array.from({length:CONTINUE_MAX},(_,i)=> i<continues?'●':'○').join(' ');
+    contsEl.innerHTML='コンティニュー <b>'+dots+'</b>';
+    contsEl.classList.toggle('low', continues<=1);
+  }
+  function startPlay(){ continues=CONTINUE_MAX; score=0; scoreEl.textContent='0'; updateContinueUI(); startStage(0); }
+
+  // ---- ステージ開始 ----
+  function startStage(i){
+    stageIdx=i; stage=STAGES[i];
+    stageNoEl.textContent=i+1;
+    timeTotal=stage.time; timeLeft=stage.time;
+    inputLocked=false;
+    clearDanger(); resetChain();
+    newGrid(); clearHandUI(); render(); updateVisual();
+    startTimer();
+    maybeShowTutorial();
+  }
+
+  // ---- 初回チュートリアル ----
+  function maybeShowTutorial(){
+    let seen=false;
+    try{ seen=localStorage.getItem('merge_tut_seen')==='1'; }catch(e){}
+    if(seen) return;
+    const tut=document.getElementById('tutorial');
+    tut.classList.add('show');
+    stopTimer(); inputLocked=true;
+    document.getElementById('tutOk').onclick=()=>{
+      try{ localStorage.setItem('merge_tut_seen','1'); }catch(e){}
+      tut.classList.remove('show');
+      inputLocked=false; startTimer();
+    };
+  }
+
+  window.addEventListener('pointerdown',()=>Snd.ensure(),{passive:true});
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) Snd.ensure(); });
+  boardEl.addEventListener('pointerdown',e=>{e.preventDefault();Snd.ensure();start(e.clientX,e.clientY);});
+  window.addEventListener('pointermove',e=>{if(dragging){e.preventDefault();move(e.clientX,e.clientY);}},{passive:false});
+  window.addEventListener('pointerup',end);
+  window.addEventListener('pointercancel',end);
+  document.getElementById('reset').addEventListener('click',()=>{ startPlay(); });
+  document.getElementById('toMenu').addEventListener('click',()=>{ toTitle(); });
+
+  // ===== ワールド・ポーカー・ツアー（全クリ＝都市制覇→入国スタンプ収集） =====
+  const CITIES=[
+    {c:'LAS',city:'ラスベガス',    flag:'🇺🇸',spot:'ポーカーの聖地'},
+    {c:'ACY',city:'アトランティックシティ',flag:'🇺🇸',spot:'東海岸の賭博街'},
+    {c:'NAS',city:'ナッソー',      flag:'🇧🇸',spot:'楽園の島カジノ'},
+    {c:'SJU',city:'サンファン',    flag:'🇵🇷',spot:'カリブの夜'},
+    {c:'LHR',city:'ロンドン',      flag:'🇬🇧',spot:'ヒッポドローム'},
+    {c:'JNB',city:'ヨハネスブルグ',flag:'🇿🇦',spot:'サンシティ'},
+    {c:'SIN',city:'シンガポール',  flag:'🇸🇬',spot:'マリーナベイ'},
+    {c:'MFM',city:'マカオ',        flag:'🇲🇴',spot:'東洋のラスベガス'},
+    {c:'ICN',city:'ソウル',        flag:'🇰🇷',spot:'ウォーカーヒル'},
+    {c:'SYD',city:'シドニー',      flag:'🇦🇺',spot:'ザ・スター'},
+    {c:'MNL',city:'マニラ',        flag:'🇵🇭',spot:'エンタメシティ'},
+    {c:'MCM',city:'モンテカルロ',  flag:'🇲🇨',spot:'最高峰の大舞台'},
+  ];
+  const PP_KEY='merge_passport_v1';
+  const MEDAL={1:'🥉',2:'🥈',3:'🥇'}, RANKCSS={1:'bronze',2:'silver',3:'gold'}, RANKJP={1:'銅',2:'銀',3:'金'};
+  function loadPass(){ try{ const a=JSON.parse(localStorage.getItem(PP_KEY)||'[]'); if(Array.isArray(a)) return CITIES.map((_,i)=>+a[i]||0); }catch(e){} return CITIES.map(()=>0); }
+  function savePass(a){ try{ localStorage.setItem(PP_KEY, JSON.stringify(a)); }catch(e){} }
+  // 全クリ時：使ったコンティニュー数で判の格を決め、次の未踏都市に押す（全踏破後は格上げ）
+  function awardStamp(){
+    const used=CONTINUE_MAX-continues;
+    const rank = used<=0?3 : (used===1?2:1);   // 0回=金 / 1回=銀 / 2回以上=銅
+    const pass=loadPass();
+    let idx=pass.findIndex(r=>r===0), mode;
+    if(idx>=0){ pass[idx]=rank; mode='new'; }
+    else { idx=pass.findIndex(r=>r<3);
+      if(idx>=0){ if(rank>pass[idx]){ pass[idx]=rank; mode='up'; } else mode='same'; }
+      else { idx=-1; mode='perfect'; } }
+    savePass(pass);
+    return { idx, rank, mode, total: pass.filter(r=>r>0).length };
+  }
+  function showStamp(cityIdx, rank){
+    const ci=CITIES[cityIdx], card=document.getElementById('stampCard');
+    card.className='stamp '+RANKCSS[rank];
+    card.innerHTML='<span class="s-ring"></span><span class="s-flag">'+ci.flag+'</span>'
+      +'<span class="s-iata">'+ci.c+'</span><span class="s-city">'+ci.city+'</span>'
+      +'<span class="s-medal">'+MEDAL[rank]+'</span>';
+    document.getElementById('stampStage').classList.add('show');
+    card.classList.remove('slam'); void card.offsetWidth; card.classList.add('slam');
+  }
+  function hideStamp(){ document.getElementById('stampStage').classList.remove('show'); }
+  function renderPassport(){
+    const pass=loadPass(), grid=document.getElementById('ppGrid'); grid.innerHTML='';
+    const nextIdx=pass.findIndex(r=>r===0), total=pass.filter(r=>r>0).length;
+    document.getElementById('ppProg').innerHTML='<b>'+total+'</b> / '+CITIES.length+' 都市 制覇';
+    CITIES.forEach((ci,i)=>{
+      const r=pass[i], cell=document.createElement('div'); cell.className='pp-cell';
+      let h='';
+      if(r>0){ cell.classList.add('done'); h+='<span class="c-medal">'+MEDAL[r]+'</span>'; }
+      else if(i===nextIdx){ cell.classList.add('next'); }
+      else { cell.classList.add('locked'); }
+      h+='<span class="c-flag">'+ci.flag+'</span><span class="c-iata">'+ci.c+'</span><span class="c-city">'+ci.city+'</span>';
+      if(i===nextIdx && r===0) h+='<span class="c-tag">つぎの目的地</span>';
+      cell.innerHTML=h; grid.appendChild(cell);
+    });
+  }
+  function openPassport(){ renderPassport(); document.getElementById('overlay').classList.remove('show'); document.getElementById('title').classList.add('hide'); document.getElementById('passport').classList.add('show'); }
+  function closePassport(){ document.getElementById('passport').classList.remove('show'); document.getElementById('title').classList.remove('hide'); }
+  document.getElementById('titlePass').addEventListener('click',()=>{ openPassport(); });
+  document.getElementById('ppClose').addEventListener('click',()=>{ closePassport(); });
+
+  // タイトル画面から開始
+  document.getElementById('titleStart').addEventListener('click',()=>{
+    Snd.ensure();
+    document.getElementById('title').classList.add('hide');
+    startPlay();
+  });
+  function toTitle(){
+    stopTimer(); clearDanger(); resetChain(); inputLocked=true;
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('title').classList.remove('hide');
+  }
+})();
+</script>
+</body>
+</html>

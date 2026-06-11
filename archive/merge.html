@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1226">
+<title>マージ＆昇天｜ステージ</title>
+<style>
+  :root{ --bg:#0f1226; --accent:#5ad1ff; --good:#46e6a0; --bad:#ff6b8b; --gold:#ffd75e; --text:#eef1ff; --muted:#9aa0c9; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  html,body{margin:0;height:100%;}
+  body{background:radial-gradient(130% 130% at 50% 0%, #2a2150 0%, #161033 50%, var(--bg) 100%);
+    color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Helvetica Neue",sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100%;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    overflow:hidden;user-select:none;-webkit-user-select:none;}
+  .wrap{width:min(94vw,440px);display:flex;flex-direction:column;gap:10px;padding:12px 0 18px;}
+  header{display:flex;justify-content:space-between;align-items:flex-end;}
+  .title{font-size:15px;font-weight:800;letter-spacing:.04em;color:var(--muted);}
+  .score{text-align:right;}
+  .score .label{font-size:10px;color:var(--muted);letter-spacing:.1em;}
+  .score .val{font-size:24px;font-weight:900;line-height:1;}
+
+  .bar{display:flex;gap:8px;}
+  .chip{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px 6px;text-align:center;}
+  .chip span{display:block;font-size:10px;color:var(--muted);letter-spacing:.08em;}
+  .chip b{font-size:19px;font-weight:900;}
+  .chip b.gold{color:var(--gold);}
+
+  .timewrap{height:9px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;}
+  .timebar{height:100%;width:100%;background:linear-gradient(90deg,#46e6a0,#5ad1ff);transition:width .2s linear;}
+  .timebar.low{background:linear-gradient(90deg,#ff6b8b,#ffb14e);}
+
+  .goal{text-align:center;font-size:14px;font-weight:800;letter-spacing:.03em;}
+  .goal b{color:var(--gold);font-size:17px;}
+  .goal .pip{font-size:15px;color:rgba(255,255,255,.22);display:inline-block;}
+  .goal .pip.on{color:var(--gold);text-shadow:0 0 8px rgba(255,215,94,.7);}
+  .goal .pip.pop{animation:pippop .45s ease;}
+  @keyframes pippop{0%{transform:scale(1);}35%{transform:scale(1.85);filter:drop-shadow(0 0 8px var(--gold));}100%{transform:scale(1);}}
+  .goal .cnt{color:var(--muted);font-size:12px;}
+
+  .handbar{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#3a2f5e,#231a44);
+    border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:9px 14px;min-height:50px;}
+  .handbar .cnt{font-size:13px;color:var(--muted);font-weight:800;min-width:42px;}
+  .handbar .name{font-size:20px;font-weight:900;line-height:1;}
+  .handbar .name.ok{color:var(--good);}
+  .handbar .res{margin-left:auto;font-size:20px;font-weight:900;color:var(--gold);}
+  .handbar .res.win{color:var(--good);}
+
+  .boardwrap{position:relative;width:100%;aspect-ratio:1/1;}
+  .board{position:absolute;inset:0;display:grid;gap:7px;padding:7px;border-radius:20px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);touch-action:none;}
+  .card{position:relative;border-radius:11px;background:linear-gradient(180deg,#fff,#e7ecf3);
+    box-shadow:inset 0 -3px 0 rgba(0,0,0,.12),0 3px 7px rgba(0,0,0,.4);
+    color:#1a1f33;transition:transform .08s ease;overflow:hidden;}
+  .card .rk{position:absolute;top:4px;left:6px;font-size:clamp(13px,4.4vw,20px);font-weight:900;line-height:1;}
+  .card .su{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(22px,9vw,40px);line-height:1;}
+  .card.red{color:#e0344a;}
+  .card.top{box-shadow:inset 0 0 0 2px var(--gold),inset 0 -3px 0 rgba(0,0,0,.12),0 0 14px rgba(255,215,94,.7);}
+  .card.sel{transform:scale(.9);box-shadow:inset 0 0 0 3px var(--accent),0 0 16px rgba(90,209,255,.7);}
+  .card.win{box-shadow:inset 0 0 0 3px var(--good),0 0 20px rgba(70,230,160,.9);}
+  .card.merged{animation:mpop .34s cubic-bezier(.2,.9,.3,1.4) both;}
+  @keyframes mpop{0%{transform:scale(.3);}55%{transform:scale(1.18);}100%{transform:scale(1);}}
+  .card.fall{animation:drop .3s cubic-bezier(.2,.9,.3,1.12) both;}
+  @keyframes drop{from{transform:translateY(var(--from,-60%));opacity:0;}to{transform:translateY(0);opacity:1;}}
+  svg.lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+
+  .hint{text-align:center;font-size:12px;color:var(--muted);min-height:15px;line-height:1.4;}
+  button{font-family:inherit;font-weight:800;font-size:14px;color:var(--text);
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px;cursor:pointer;width:100%;}
+  button:active{transform:scale(.97);}
+
+  /* 残り時間の危険演出（背景の段階赤化＋鼓動＋節目フラッシュ・派手版） */
+  #dangerWash,#dangerPulse,#dangerFlash{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;}
+  #dangerWash{transition:opacity .7s ease, background .7s ease;}
+  #dangerPulse{background:radial-gradient(105% 105% at 50% 50%, rgba(255,0,0,0) 34%, rgba(255,30,30,.78) 100%);}
+  #dangerPulse.beat1{animation:beatpulse .6s ease-out;}
+  @keyframes beatpulse{0%{opacity:0;}26%{opacity:.92;}100%{opacity:0;}}
+  #dangerFlash{background:radial-gradient(120% 120% at 50% 55%, rgba(255,60,45,0) 18%, rgba(255,40,30,.97) 100%);}
+  #dangerFlash.punch{animation:dpunch .55s ease-out;}
+  @keyframes dpunch{0%{opacity:0;}14%{opacity:.95;}100%{opacity:0;}}
+  .chip.danger{border-color:rgba(255,85,70,.6);box-shadow:0 0 16px rgba(255,60,50,.45);}
+  .chip.danger b{color:#ff6b5a;}
+  #time{display:inline-block;}
+  #time.tpop{animation:tpop .4s ease;}
+  @keyframes tpop{0%{transform:scale(1);}40%{transform:scale(1.45);color:#fff;}100%{transform:scale(1);}}
+  .boardwrap.shake{animation:shk .32s ease;}
+  @keyframes shk{0%,100%{transform:translateX(0);}20%{transform:translateX(-4px);}60%{transform:translateX(4px);}80%{transform:translateX(-2px);}}
+
+  /* 昇天演出 */
+  .ascend-star{position:fixed;z-index:50;pointer-events:none;font-size:60px;line-height:1;
+    text-shadow:0 0 30px rgba(255,215,94,.9),0 0 60px rgba(255,215,94,.6);will-change:transform,opacity;}
+  @keyframes ascend{0%{transform:translate(-50%,-50%) scale(.3);opacity:0;}
+    15%{transform:translate(-50%,-50%) scale(1.3);opacity:1;}
+    100%{transform:translate(-50%,calc(-50% - 90vh)) scale(.9);opacity:0;}}
+  #flash{position:fixed;inset:0;z-index:49;background:radial-gradient(circle at 50% 60%, rgba(255,240,200,.55), transparent 60%);opacity:0;pointer-events:none;}
+  #flash.show{animation:flash .8s ease;}
+  @keyframes flash{0%{opacity:0;}20%{opacity:1;}100%{opacity:0;}}
+  #flash.soft{animation:flashsoft .5s ease;}
+  @keyframes flashsoft{0%{opacity:0;}30%{opacity:.55;}100%{opacity:0;}}
+  .ring{position:fixed;z-index:48;pointer-events:none;border-radius:50%;border:3px solid var(--gold);
+    box-shadow:0 0 18px rgba(255,215,94,.85),inset 0 0 14px rgba(255,215,94,.5);
+    transform:translate(-50%,-50%) scale(.2);opacity:0;}
+  .ring.go{animation:ringfx .5s ease-out forwards;}
+  @keyframes ringfx{0%{transform:translate(-50%,-50%) scale(.25);opacity:.95;}100%{transform:translate(-50%,-50%) scale(2.6);opacity:0;}}
+  #toast{position:fixed;left:50%;top:30%;transform:translateX(-50%);text-align:center;font-weight:900;font-size:40px;color:var(--gold);
+    opacity:0;pointer-events:none;z-index:51;text-shadow:0 4px 20px rgba(0,0,0,.5);}
+  #toast.show{animation:ts .9s ease;}
+  @keyframes ts{0%{opacity:0;transform:translateX(-50%) scale(.5);}25%{opacity:1;transform:translateX(-50%) scale(1.1);}100%{opacity:0;transform:translateX(-50%) scale(1) translateY(-24px);}}
+
+  /* オーバーレイ（クリア/タイムアップ） */
+  #overlay{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    background:rgba(8,6,20,.84);padding:28px;text-align:center;}
+  #overlay.show{display:flex;}
+  #overlay .big{font-size:32px;font-weight:900;color:var(--gold);text-shadow:0 4px 20px rgba(0,0,0,.5);}
+  #overlay .big.lose{color:var(--bad);}
+  #overlay .sub{font-size:14px;color:var(--muted);max-width:300px;line-height:1.5;}
+  #overlay button{width:auto;min-width:220px;padding:14px 24px;}
+  #overlay #ovBtn2{min-width:150px;padding:10px 18px;font-size:13px;background:transparent;border-color:rgba(255,255,255,.16);color:var(--muted);}
+  .conts{text-align:right;font-size:11px;color:var(--muted);letter-spacing:.14em;margin-top:2px;min-height:14px;}
+  .conts b{color:var(--gold);font-size:13px;letter-spacing:.06em;}
+  .conts.low b{color:var(--bad);}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">マージ＆昇天｜ステージ</div>
+      <div class="score"><div class="label">SCORE</div><div class="val" id="score">0</div></div>
+    </header>
+    <div class="conts" id="conts"></div>
+    <div class="bar">
+      <div class="chip"><span>ステージ</span><b id="stageNo">1</b></div>
+      <div class="chip"><span>目標カード</span><b class="gold" id="goalCard">6</b></div>
+      <div class="chip"><span>のこり</span><b id="time">90</b></div>
+    </div>
+    <div class="timewrap"><div class="timebar" id="timebar"></div></div>
+    <div class="goal" id="goal"></div>
+    <div class="handbar">
+      <div class="cnt"><span id="cnt">0</span>/5</div>
+      <div class="name" id="handName">5枚つなごう</div>
+      <div class="res" id="res"></div>
+    </div>
+    <div class="boardwrap">
+      <div class="board" id="board"></div>
+      <svg class="lines" id="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline id="poly" fill="none" stroke="#5ad1ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
+      </svg>
+    </div>
+    <div class="hint">5枚つないで役を作ると1枚に集約＝強い役ほど上のカードに育つ。<b style="color:var(--gold)">目標カードを5枚つないで★</b>を出せばクリア！補充は低い札ばかり、上は自分で作る。</div>
+    <div style="display:flex;gap:10px;"><button id="reset">はじめから</button><button id="toMenu">タイトルへ</button></div>
+  </div>
+  <div id="dangerWash"></div>
+  <div id="dangerPulse"></div>
+  <div id="dangerFlash"></div>
+  <div id="flash"></div>
+  <div id="toast"></div>
+  <div id="overlay"><div class="big"></div><div class="sub"></div><button id="ovBtn"></button><button id="ovBtn2" style="display:none"></button></div>
+
+<script>
+(() => {
+  const N=5;
+  const boardEl=document.getElementById('board'), polyEl=document.getElementById('poly');
+  const scoreEl=document.getElementById('score'), cntEl=document.getElementById('cnt');
+  const nameEl=document.getElementById('handName'), resEl=document.getElementById('res');
+  const stageNoEl=document.getElementById('stageNo'), goalCardEl=document.getElementById('goalCard');
+  const timeEl=document.getElementById('time'), timebarEl=document.getElementById('timebar'), goalEl=document.getElementById('goal');
+  const overlayEl=document.getElementById('overlay'), contsEl=document.getElementById('conts');
+  boardEl.style.gridTemplateColumns=`repeat(${N},1fr)`; boardEl.style.gridTemplateRows=`repeat(${N},1fr)`;
+
+  const SUITS=['♠','♥','♦','♣'], RANKLBL={2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',11:'J',12:'Q',13:'K',14:'A'};
+  const rnd=n=>Math.floor(Math.random()*n), wait=ms=>new Promise(z=>setTimeout(z,ms));
+
+  // ===== ステージ定義（天井＝目標カード／制限時間 秒） =====
+  const STAGES=[
+    {top:6,  time:90 },   // 1
+    {top:7,  time:90 },   // 2
+    {top:8,  time:100},   // 3
+    {top:9,  time:100},   // 4
+    {top:10, time:110},   // 5
+    {top:11, time:120},   // 6 (J)
+    {top:12, time:120},   // 7 (Q)
+    {top:13, time:130},   // 8 (K)
+    {top:14, time:160},   // 9 (A) 激ムズ
+  ];
+  let stageIdx=0, stage=STAGES[0];
+
+  let grid=[], path=[], dragging=false, inputLocked=false, score=0;
+
+  // 補充：そのステージの 2〜(top-1) を低めに寄せる（天井は出さない＝作るしかない）
+  function refillCard(){
+    const lo=Math.max(2, stage.top-7), hi=stage.top-1, span=hi-lo+1; // 高ステージほど下限が上がる＝2,3が出にくく
+    const r=lo+Math.min(rnd(span),rnd(span)); // 2つの乱数の小さい方＝（バンド内の）低札に偏る
+    return {r, s:rnd(4)};
+  }
+
+  // ---- 役判定 ----
+  function isStraight(rk){const u=[...new Set(rk)];if(u.length!==5)return false;const s=u.slice().sort((a,b)=>a-b);return s[4]-s[0]===4||s.join(',')==='2,3,4,5,14';}
+  function evalHand(cards){const n=cards.length,rc={},sc={};cards.forEach(c=>{rc[c.r]=(rc[c.r]||0)+1;sc[c.s]=(sc[c.s]||0)+1;});
+    const co=Object.values(rc).sort((a,b)=>b-a); if(co[0]===5)return'five';
+    const fl=n===5&&Object.keys(sc).length===1, st=n===5&&isStraight(cards.map(c=>c.r));
+    if(st&&fl){const rs=[...new Set(cards.map(c=>c.r))].sort((a,b)=>a-b);return(rs[0]===10&&rs[4]===14)?'royal':'sflush';}
+    if(co[0]===4)return'four'; if(co[0]===3&&co[1]===2)return'full'; if(fl)return'flush'; if(st)return'straight';
+    if(co[0]===3)return'trips'; if(co[0]===2&&co[1]===2)return'twopair'; if(co[0]===2)return'pair'; return'high';}
+  const HANDNAME={five:'ファイブカード',royal:'ロイヤル',sflush:'ストフラ',four:'フォーカード',full:'フルハウス',flush:'フラッシュ',straight:'ストレート',trips:'スリーカード',twopair:'ツーペア',pair:'ワンペア',high:'—'};
+
+  // 役 → 残る1枚（天井 stage.top で頭打ち。目標カード5枚＝★クリア）
+  function mergeResult(cards, key){
+    const T=stage.top;
+    const rc={}; cards.forEach(c=>rc[c.r]=(rc[c.r]||0)+1);
+    const ent=Object.entries(rc).map(([r,n])=>[+r,n]).sort((a,b)=>b[1]-a[1]||b[0]-a[0]);
+    const dom=ent[0][0], mx=Math.max(...cards.map(c=>c.r));
+    if(key==='five'){ return dom===T ? {ascend:true} : {rank:T}; }   // 目標5枚=★ / それ以外の5カード=目標札を1枚生成
+    const BUMP={pair:1,twopair:1,trips:2,straight:2,flush:2,full:3,four:3,sflush:4,royal:4};
+    const base=(key==='straight'||key==='flush'||key==='sflush'||key==='royal')?mx:dom;
+    return {rank: Math.min(T, base+(BUMP[key]||1))};
+  }
+
+  // ---- 音 ----
+  const Snd=(()=>{let ctx=null,m=null;
+    function ac(){if(!ctx){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;ctx=new A();m=ctx.createGain();m.gain.value=.7;const comp=ctx.createDynamicsCompressor();m.connect(comp);comp.connect(ctx.destination);}if(ctx.state!=='running')ctx.resume();return ctx;}
+    // 1音をオーディオ時計の絶対時刻 when（省略=即時）に予約。setTimeout不使用＝メインスレッドのジャンクに左右されない
+    function t(f,ty,d,g,sl,when){if(!ac())return;const n=(when!=null?when:ctx.currentTime);const o=ctx.createOscillator(),gn=ctx.createGain();o.type=ty;o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(sl,n+d);gn.gain.setValueAtTime(.0001,n);gn.gain.linearRampToValueAtTime(g,n+.005);gn.gain.exponentialRampToValueAtTime(.0001,n+d);o.connect(gn).connect(m);o.start(n);o.stop(n+d+.05);}
+    // 連続音もまとめてオーディオ時計に予約
+    function seq(notes,ty,d,g,gap,sl){if(!ac())return;const n=ctx.currentTime;notes.forEach((f,i)=>t(f,ty,d,g,sl,n+i*gap));}
+    return{ensure:ac,tick:k=>t(320+Math.min(k,5)*60,'triangle',.04,.14),
+      merge:r=>t(300+r*40,'triangle',.14,.32,500+r*60),
+      top:(lvl=1)=>{const roots=[523,587,659,740,880];const root=roots[Math.min(Math.max(lvl,1),5)-1];seq([root,root*1.5],'triangle',.16,.4,.08);},
+      ascend:()=>seq([523,659,784,1047,1319],'sine',.5,.36,.11),
+      bad:()=>seq([392,294,196],'sawtooth',.24,.3,.12),
+      timetick:(strong)=>t(strong?900:680,'square',.05,strong?.42:.26,strong?540:null)};})();
+
+  function newGrid(){ grid=Array.from({length:N},()=>Array.from({length:N},()=>refillCard())); }
+
+  function render(motion){
+    boardEl.innerHTML='';
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){const card=grid[r][c];const el=document.createElement('div');
+      el.className='card'+((card&&(card.s===1||card.s===2))?' red':'')+((card&&card.r===stage.top)?' top':'');
+      el.dataset.r=r;el.dataset.c=c;
+      if(card==null)el.style.visibility='hidden'; else { el.innerHTML=`<span class="rk">${RANKLBL[card.r]}</span><span class="su">${SUITS[card.s]}</span>`; el.dataset.v=RANKLBL[card.r]; }
+      boardEl.appendChild(el);}
+    if(motion){const s=boardEl.querySelector('.card');const h=s?s.offsetHeight:50,gap=7;
+      boardEl.querySelectorAll('.card').forEach(el=>{const mo=motion[+el.dataset.r][+el.dataset.c];
+        if(mo>0){el.style.setProperty('--from',`-${mo*(h+gap)}px`);el.classList.add('fall');}});}
+    updateGoal();
+  }
+  const cardEl=(r,c)=>boardEl.querySelector(`.card[data-r="${r}"][data-c="${c}"]`);
+  const pathCards=()=>path.map(p=>grid[p.r][p.c]);
+
+  function updateGoal(){
+    const cnt=countTop();
+    const have=Math.min(cnt,5);
+    const pips=Array.from({length:5},(_,i)=>`<span class="pip ${i<have?'on':''}">${i<have?'★':'☆'}</span>`).join('');
+    goalEl.innerHTML=`★まで：<b>${RANKLBL[stage.top]}</b> を ${pips} <span class="cnt">(${cnt}/5)</span>`;
+  }
+
+  function updateVisual(){
+    const cards=pathCards(); cntEl.textContent=cards.length;
+    const key=cards.length?evalHand(cards):'high';
+    const valid=cards.length===5&&key!=='high';
+    nameEl.textContent = cards.length===0?'5枚つなごう':(cards.length<5?HANDNAME[key]+'…':HANDNAME[key]);
+    nameEl.className='name'+(valid?' ok':'');
+    if(valid){ const m=mergeResult(cards,key); resEl.textContent=m.ascend?'→ ★クリア！':'→ '+RANKLBL[m.rank]; resEl.className='res'+(m.ascend?' win':''); }
+    else { resEl.textContent=''; resEl.className='res'; }
+    boardEl.querySelectorAll('.card').forEach(el=>el.classList.remove('sel','win'));
+    path.forEach(p=>{const el=cardEl(p.r,p.c); if(el){el.classList.add('sel'); if(valid)el.classList.add('win');}});
+    if(path.length<1){polyEl.setAttribute('opacity','0');return;}
+    const u=100/N; polyEl.setAttribute('points',path.map(p=>`${(p.c+0.5)*u},${(p.r+0.5)*u}`).join(' '));
+    polyEl.setAttribute('opacity','0.9'); polyEl.setAttribute('stroke',valid?'#46e6a0':'#5ad1ff');
+  }
+
+  function cellFromPoint(x,y){const el=document.elementFromPoint(x,y);if(!el)return null;const c=el.closest('.card');if(!c||c.style.visibility==='hidden')return null;return{r:+c.dataset.r,c:+c.dataset.c};}
+  const adjacent=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1, inPath=p=>path.some(q=>q.r===p.r&&q.c===p.c);
+  function start(x,y){ if(inputLocked)return; const p=cellFromPoint(x,y); if(!p)return; dragging=true; path=[p]; Snd.tick(1); updateVisual(); }
+  function move(x,y){ if(!dragging)return; const p=cellFromPoint(x,y); if(!p)return; const last=path[path.length-1];
+    if(last.r===p.r&&last.c===p.c)return;
+    if(path.length>=2){const prev=path[path.length-2];if(prev.r===p.r&&prev.c===p.c){path.pop();updateVisual();return;}}
+    if(inPath(p))return; if(!adjacent(last,p))return; if(path.length>=5)return;
+    path.push(p); Snd.tick(path.length); updateVisual(); }
+  async function end(){ if(!dragging)return; dragging=false;
+    const cards=pathCards(); const key=cards.length?evalHand(cards):'high';
+    if(cards.length===5&&key!=='high'){ await doMerge(key); }
+    else { path=[]; updateVisual(); } }
+
+  function applyGravity(){const motion=Array.from({length:N},()=>Array(N).fill(0));
+    for(let c=0;c<N;c++){const surv=[];for(let r=N-1;r>=0;r--)if(grid[r][c]!=null)surv.push({row:r,val:grid[r][c]});const holes=N-surv.length;
+      for(let r=N-1;r>=0;r--){const idx=N-1-r;if(idx<surv.length){grid[r][c]=surv[idx].val;motion[r][c]=r-surv[idx].row;}else{grid[r][c]=refillCard();motion[r][c]=holes;}}}return motion;}
+
+  function flashToast(txt){const t=document.getElementById('toast');t.textContent=txt;t.classList.remove('show');void t.offsetWidth;t.classList.add('show');}
+
+  function clearHandUI(){ path=[]; polyEl.setAttribute('opacity','0'); resEl.textContent=''; resEl.className='res'; nameEl.textContent='5枚つなごう'; nameEl.className='name'; cntEl.textContent='0'; }
+
+  function countTop(){ let n=0; for(let r=0;r<N;r++)for(let c=0;c<N;c++) if(grid[r][c]&&grid[r][c].r===stage.top) n++; return n; }
+
+  // ① 集約の“吸い込み”：消える4枚を集約先へシュッと吸わせる
+  async function gatherAnim(end){
+    const endEl=cardEl(end.r,end.c); if(!endEl) return;
+    const er=endEl.getBoundingClientRect(), ecx=er.left+er.width/2, ecy=er.top+er.height/2;
+    path.forEach(p=>{ const el=cardEl(p.r,p.c); if(!el) return;
+      if(p.r===end.r&&p.c===end.c){ el.style.transition='transform .15s ease'; el.style.transform='scale(1.12)'; el.style.zIndex='6'; return; }
+      const b=el.getBoundingClientRect(), dx=ecx-(b.left+b.width/2), dy=ecy-(b.top+b.height/2);
+      el.style.transition='transform .16s cubic-bezier(.5,0,1,.5),opacity .16s ease';
+      el.style.transform=`translate(${dx}px,${dy}px) scale(.22)`; el.style.opacity='0'; el.style.zIndex='4'; });
+    await wait(150);
+  }
+
+  // ② 天井札を作った瞬間の特別演出（金リング波紋・ソフト金フラ・進捗ピップpop・バイブ・上昇チャイム）
+  function topCardFx(el, count){
+    if(el){ const r=el.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+      const ring=document.createElement('div'); ring.className='ring'; const sz=r.width*1.15;
+      ring.style.width=sz+'px'; ring.style.height=sz+'px'; ring.style.left=cx+'px'; ring.style.top=cy+'px';
+      document.body.appendChild(ring); requestAnimationFrame(()=>ring.classList.add('go')); setTimeout(()=>ring.remove(),560); }
+    const fl=document.getElementById('flash'); fl.classList.remove('soft'); void fl.offsetWidth; fl.classList.add('soft'); setTimeout(()=>fl.classList.remove('soft'),520);
+    const ons=goalEl.querySelectorAll('.pip.on'); const last=ons[ons.length-1]; if(last) last.classList.add('pop');
+    try{ navigator.vibrate && navigator.vibrate(Math.min(55,18+count*9)); }catch(e){}
+    Snd.top(count);
+  }
+
+  async function doMerge(key){
+    inputLocked=true;
+    const cards=pathCards(); const m=mergeResult(cards,key);
+    if(m.ascend){ await winStage(); return; }
+    const end=path[path.length-1];
+    const endSuit=grid[end.r][end.c].s;
+    const isTop=(m.rank===stage.top);
+    await gatherAnim(end);                       // 吸い込み
+    path.forEach(p=> grid[p.r][p.c]=null);
+    grid[end.r][end.c]={r:m.rank, s:endSuit};
+    score += m.rank*2; scoreEl.textContent=score;
+    clearHandUI();
+    render();                                    // 集約結果をその場に表示（重力前）
+    const popEl=cardEl(end.r,end.c); if(popEl) popEl.classList.add('merged');  // ポップ
+    if(isTop) topCardFx(popEl, countTop()); else Snd.merge(m.rank);
+    await wait(isTop?480:240);
+    const mot=applyGravity(); render(mot);        // 重力で落とす
+    await wait(240); inputLocked=false;
+  }
+
+  async function winStage(){
+    stopTimer(); clearDanger(); inputLocked=true;
+    try{ navigator.vibrate && navigator.vibrate([0,45,35,45,35,140]); }catch(e){}
+    const rects=path.map(p=>cardEl(p.r,p.c).getBoundingClientRect());
+    const cx=rects.reduce((a,r)=>a+r.left+r.width/2,0)/rects.length;
+    const cy=rects.reduce((a,r)=>a+r.top+r.height/2,0)/rects.length;
+    document.getElementById('flash').classList.add('show');
+    path.forEach(p=>{const el=cardEl(p.r,p.c); if(el)el.classList.add('win');});
+    const star=document.createElement('div'); star.className='ascend-star'; star.textContent='⭐';
+    star.style.left=cx+'px'; star.style.top=cy+'px';
+    star.style.animation='ascend 1.3s cubic-bezier(.4,0,.6,1) forwards';
+    document.body.appendChild(star);
+    Snd.ascend(); flashToast('昇 天 ！');
+    score+=500; scoreEl.textContent=score;
+    await wait(1100);
+    setTimeout(()=>star.remove(),300);
+    document.getElementById('flash').classList.remove('show');
+    const last=stageIdx>=STAGES.length-1;
+    if(last) showOverlay('🎉 全ステージ クリア！','天井Aまで昇天しきった！本物のマージ師だ。','最初からもう一回',()=>startStage(0),false);
+    else     showOverlay('ステージ '+(stageIdx+1)+' クリア！','つぎは天井「'+RANKLBL[STAGES[stageIdx+1].top]+'」に挑戦。','つぎのステージへ',()=>startStage(stageIdx+1),false);
+  }
+
+  // ---- タイマー ----
+  let timeLeft=0, timeTotal=0, timerId=null, running=false;
+  const dangerWash=document.getElementById('dangerWash'), dangerPulse=document.getElementById('dangerPulse'), dangerFlash=document.getElementById('dangerFlash');
+  const timeChip=timeEl.closest('.chip');
+  // 残り秒のバンド（≤60から10秒ごと）→ 一方向に赤く濃く（派手め）
+  const DANGER=[null,{op:.22,col:'255,110,40'},{op:.34,col:'255,85,35'},{op:.46,col:'255,62,30'},{op:.60,col:'255,45,28'},{op:.72,col:'255,30,26'},{op:.86,col:'255,20,20'}];
+  let lastDangerLevel=0, lastTickSec=-1, beatTimer=null;
+  function punchFlash(){ dangerFlash.classList.remove('punch'); void dangerFlash.offsetWidth; dangerFlash.classList.add('punch'); }
+  function popTime(){ timeEl.classList.remove('tpop'); void timeEl.offsetWidth; timeEl.classList.add('tpop'); }
+  function shakeBoard(){ const bw=document.querySelector('.boardwrap'); if(!bw)return; bw.classList.remove('shake'); void bw.offsetWidth; bw.classList.add('shake'); }
+  // 鼓動：視覚パルスとスマホ振動を“同じトリガー”で同期。残り時間で間隔が縮む＝加速
+  function beatLoop(){
+    if(!running || lastDangerLevel<4){ beatTimer=null; return; }
+    const period=Math.max(380, (timeLeft/26)*1000);                 // ms（減るほど短く）
+    dangerPulse.classList.remove('beat1'); void dangerPulse.offsetWidth;
+    dangerPulse.style.animationDuration=(period/1000).toFixed(2)+'s';
+    dangerPulse.classList.add('beat1');                              // 視覚の1拍
+    const v = lastDangerLevel>=6 ? 50 : (lastDangerLevel>=5 ? 38 : 26);
+    try{ navigator.vibrate && navigator.vibrate(v); }catch(e){}      // 同時に振動（※iOS Safariは非対応）
+    beatTimer=setTimeout(beatLoop, period);
+  }
+  function stopBeat(){ if(beatTimer){ clearTimeout(beatTimer); beatTimer=null; } dangerPulse.classList.remove('beat1'); }
+  function clearDanger(){ lastDangerLevel=0; lastTickSec=-1; stopBeat(); dangerWash.style.opacity=0; if(timeChip) timeChip.classList.remove('danger'); }
+  function updateDanger(sec){
+    const level = sec>60?0:Math.min(6, 1+Math.floor((60-sec)/10));
+    if(timeChip) timeChip.classList.toggle('danger', level>=1);
+    if(level!==lastDangerLevel){
+      const d=DANGER[level];
+      if(d){ dangerWash.style.opacity=d.op; dangerWash.style.background=`radial-gradient(120% 120% at 50% 62%, rgba(${d.col},0) 30%, rgba(${d.col},.97) 100%)`; }
+      else dangerWash.style.opacity=0;
+      if(level>lastDangerLevel && level>=1){ Snd.timetick(true); punchFlash(); popTime(); }  // 節目をドンと
+      lastDangerLevel=level;
+      if(level>=4){ if(!beatTimer) beatLoop(); } else stopBeat();    // 残り30秒〜で鼓動開始（自走で加速）
+    }
+    if(sec<=5 && sec>0 && sec!==lastTickSec){ lastTickSec=sec; Snd.timetick(false); popTime(); shakeBoard(); }      // ラスト5秒は毎秒＋振動
+  }
+  function startTimer(){ running=true; clearInterval(timerId);
+    timerId=setInterval(()=>{ if(!running)return; timeLeft-=0.2;
+      if(timeLeft<=0){ timeLeft=0; updateTimer(); loseStage(); } else updateTimer(); },200);
+    updateTimer(); }
+  function stopTimer(){ running=false; clearInterval(timerId); timerId=null; }
+  function updateTimer(){ const sec=Math.ceil(timeLeft); timeEl.textContent=sec;
+    const p=timeTotal?Math.max(0,timeLeft/timeTotal):0; timebarEl.style.width=(p*100)+'%';
+    timebarEl.classList.toggle('low', timeLeft<=10);
+    updateDanger(sec); }
+
+  function loseStage(){ stopTimer(); clearDanger(); inputLocked=true; clearHandUI(); render(); Snd.bad();
+    if(continues>0){
+      showOverlay('タイムアップ…','コンティニューで同じステージに再挑戦（残り '+continues+' 回）',
+        'コンティニュー',()=>{ continues--; updateContinueUI(); startStage(stageIdx); }, true,
+        'タイトルへ',()=>{ location.href='index.html'; });
+    } else {
+      showOverlay('ゲームオーバー','コンティニューを使い切りました（天井「'+RANKLBL[stage.top]+'」）。',
+        'はじめから',()=>startPlay(), true,
+        'タイトルへ',()=>{ location.href='index.html'; });
+    }
+  }
+
+  // ---- オーバーレイ ----
+  function showOverlay(big,sub,btn,cb,lose,btn2,cb2){
+    overlayEl.querySelector('.big').textContent=big;
+    overlayEl.querySelector('.big').className='big'+(lose?' lose':'');
+    overlayEl.querySelector('.sub').textContent=sub;
+    const b=document.getElementById('ovBtn'); b.textContent=btn;
+    b.onclick=()=>{ overlayEl.classList.remove('show'); cb(); };
+    const b2=document.getElementById('ovBtn2');
+    if(btn2){ b2.style.display=''; b2.textContent=btn2; b2.onclick=()=>{ overlayEl.classList.remove('show'); cb2(); }; }
+    else b2.style.display='none';
+    overlayEl.classList.add('show');
+  }
+
+  // ---- コンティニュー（1プレイ＝1ランにつき3回・繰り越し） ----
+  const CONTINUE_MAX=3; let continues=CONTINUE_MAX;
+  function updateContinueUI(){
+    const dots=Array.from({length:CONTINUE_MAX},(_,i)=> i<continues?'●':'○').join(' ');
+    contsEl.innerHTML='コンティニュー <b>'+dots+'</b>';
+    contsEl.classList.toggle('low', continues<=1);
+  }
+  function startPlay(){ continues=CONTINUE_MAX; score=0; scoreEl.textContent='0'; updateContinueUI(); startStage(0); }
+
+  // ---- ステージ開始 ----
+  function startStage(i){
+    stageIdx=i; stage=STAGES[i];
+    stageNoEl.textContent=i+1; goalCardEl.textContent=RANKLBL[stage.top];
+    timeTotal=stage.time; timeLeft=stage.time;
+    inputLocked=false;
+    clearDanger();
+    newGrid(); clearHandUI(); render(); updateVisual();
+    startTimer();
+  }
+
+  window.addEventListener('pointerdown',()=>Snd.ensure(),{passive:true});
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) Snd.ensure(); });
+  boardEl.addEventListener('pointerdown',e=>{e.preventDefault();Snd.ensure();start(e.clientX,e.clientY);});
+  window.addEventListener('pointermove',e=>{if(dragging){e.preventDefault();move(e.clientX,e.clientY);}},{passive:false});
+  window.addEventListener('pointerup',end);
+  window.addEventListener('pointercancel',end);
+  document.getElementById('reset').addEventListener('click',()=>{ startPlay(); });
+  document.getElementById('toMenu').addEventListener('click',()=>{ location.href='index.html'; });
+
+  startPlay();
+})();
+</script>
+</body>
+</html>
