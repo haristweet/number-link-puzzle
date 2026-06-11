@@ -88,7 +88,7 @@
   .boardwrap.shake{animation:shk .32s ease;}
   @keyframes shk{0%,100%{transform:translateX(0);}20%{transform:translateX(-4px);}60%{transform:translateX(4px);}80%{transform:translateX(-2px);}}
 
-  /* 昇天演出 */
+  /* クリア（★）演出 */
   .ascend-star{position:fixed;z-index:50;pointer-events:none;font-size:60px;line-height:1;
     text-shadow:0 0 30px rgba(255,215,94,.9),0 0 60px rgba(255,215,94,.6);will-change:transform,opacity;}
   @keyframes ascend{0%{transform:translate(-50%,-50%) scale(.3);opacity:0;}
@@ -275,7 +275,7 @@
       </div>
     </div>
     <div style="display:flex;gap:10px;"><button id="reset">はじめから</button><button id="toMenu">タイトルへ</button></div>
-    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.6</div>
+    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.6.1</div>
   </div>
 
   <!-- タイトル画面 -->
@@ -291,7 +291,7 @@
     </div>
     <button id="titleStart">はじめる</button>
     <button id="titlePass" class="t-sec">パスポート ✈</button>
-    <div class="t-ver">v2.6</div>
+    <div class="t-ver">v2.6.1</div>
   </div>
 
   <!-- パスポート（ワールド・ポーカー・ツアー） -->
@@ -538,7 +538,7 @@
     star.style.left=cx+'px'; star.style.top=cy+'px';
     star.style.animation='ascend 1.3s cubic-bezier(.4,0,.6,1) forwards';
     document.body.appendChild(star);
-    Snd.ascend(); flashToast('昇 天 ！');
+    Snd.ascend(); flashToast('WELL DONE!');
     score+=500; scoreEl.textContent=score;
     await wait(1100);
     setTimeout(()=>star.remove(),300);
