@@ -1,6 +1,12 @@
 # 引き継ぎメモ（HANDOFF）
 
-別環境（モバイルアプリ等）で続きをやるための引き継ぎ。**まず `git pull` で最新の `main` を取得してから作業すること。**
+> ## ⚠️ 2026-06-11：リポジトリ移管＋履歴リセット済み（モバイルは再clone必須）
+> 1. **リポは `takeshi-hariu/number-link-puzzle` に移管済み**（旧 haristweet は削除・コラボからも除外）。公開URLも **https://takeshi-hariu.github.io/number-link-puzzle/** に変わった（旧URLは404）。
+> 2. **git履歴を1コミットに作り直して force-push 済み**（haristweet表記の除去のため）。**古いクローンでは `git pull` が失敗する**ので、モバイル側は**フォルダごと削除して再clone**すること：
+>    `git clone https://github.com/takeshi-hariu/number-link-puzzle.git`
+> 3. コミットIDは `user.name=takeshi-hariu` / `user.email=takeshi-hariu@coly.info` に統一。
+
+別環境（モバイルアプリ等）で続きをやるための引き継ぎ。**まず `git pull` で最新の `main` を取得してから作業すること**（↑初回は再clone）。
 
 ## このリポジトリは何か
 スマホ向けゲーム「つなげて消す」＋その派生プロトタイプ群。公開先 GitHub Pages：
