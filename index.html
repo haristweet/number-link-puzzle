@@ -256,6 +256,7 @@
   #chainHud{position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;
     display:none;flex-direction:column;align-items:center;gap:4px;}
   #chainHud.show{display:flex;}
+  #chainHud.low{top:auto;bottom:-6px;flex-direction:column-reverse;}  /* 指が上段にいる間は下へ退避 */
   .ch-pill{background:rgba(16,26,52,.94);border:1.6px solid var(--accent);border-radius:999px;
     padding:5px 15px;font-weight:900;font-size:16px;color:var(--accent);letter-spacing:.03em;white-space:nowrap;
     box-shadow:0 0 18px rgba(90,209,255,.55),0 2px 8px rgba(0,0,0,.4);}
@@ -297,7 +298,7 @@
       </div>
     </div>
     <div style="display:flex;gap:10px;"><button id="reset">はじめから</button><button id="toMenu">タイトルへ</button></div>
-    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.7</div>
+    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.7.1</div>
   </div>
 
   <!-- タイトル画面 -->
@@ -313,7 +314,7 @@
     </div>
     <button id="titleStart">はじめる</button>
     <button id="titlePass" class="t-sec">パスポート ✈</button>
-    <div class="t-ver">v2.7</div>
+    <div class="t-ver">v2.7.1</div>
   </div>
 
   <!-- パスポート（ワールド・ポーカー・ツアー） -->
@@ -483,8 +484,14 @@
 
   function cellFromPoint(x,y){const el=document.elementFromPoint(x,y);if(!el)return null;const c=el.closest('.card');if(!c||c.style.visibility==='hidden')return null;return{r:+c.dataset.r,c:+c.dataset.c};}
   const adjacent=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1, inPath=p=>path.some(q=>q.r===p.r&&q.c===p.c);
-  function start(x,y){ if(inputLocked)return; const p=cellFromPoint(x,y); if(!p)return; dragging=true; path=[p]; Snd.tick(1); updateVisual(); }
-  function move(x,y){ if(!dragging)return; const p=cellFromPoint(x,y); if(!p)return; const last=path[path.length-1];
+  // CHAINハドの退避：指が上2段にいる間は下端へ、下2段に戻れば上端へ（中段は据え置き）
+  function hudDodge(p){
+    if(!chainHud.classList.contains('show')) return;
+    if(p.r<=1) chainHud.classList.add('low');
+    else if(p.r>=3) chainHud.classList.remove('low');
+  }
+  function start(x,y){ if(inputLocked)return; const p=cellFromPoint(x,y); if(!p)return; dragging=true; path=[p]; hudDodge(p); Snd.tick(1); updateVisual(); }
+  function move(x,y){ if(!dragging)return; const p=cellFromPoint(x,y); if(!p)return; hudDodge(p); const last=path[path.length-1];
     if(last.r===p.r&&last.c===p.c)return;
     if(path.length>=2){const prev=path[path.length-2];if(prev.r===p.r&&prev.c===p.c){path.pop();updateVisual();return;}}
     if(inPath(p))return; if(!adjacent(last,p))return; if(path.length>=5)return;
@@ -683,10 +690,10 @@
   function endFreeze(){                     // チェイン終了→クロック再開
     frozen=false; chainCount=0;
     if(freezeId){ clearInterval(freezeId); freezeId=null; }
-    chainHud.classList.remove('show'); timeEl.classList.remove('frozen');
+    chainHud.classList.remove('show','low'); timeEl.classList.remove('frozen');
     if(running && lastDangerLevel>=4 && !beatTimer) beatLoop();   // 鼓動を戻す
   }
-  function resetChain(){ frozen=false; chainCount=0; if(freezeId){clearInterval(freezeId);freezeId=null;} chainHud.classList.remove('show'); timeEl.classList.remove('frozen'); }
+  function resetChain(){ frozen=false; chainCount=0; if(freezeId){clearInterval(freezeId);freezeId=null;} chainHud.classList.remove('show','low'); timeEl.classList.remove('frozen'); }
 
   function loseStage(){ stopTimer(); clearDanger(); resetChain(); inputLocked=true; clearHandUI(); render(); Snd.bad();
     if(continues>0){
