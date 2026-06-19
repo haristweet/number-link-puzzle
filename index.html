@@ -283,6 +283,26 @@
   html.lofi .board{ background:#191938 !important; }
   /* ロゴ・大文字はハード影で“レトロ”に */
   html.lofi #title .t-logo, html.lofi #cine .ctext{ text-shadow:4px 4px 0 #000 !important; }
+
+  /* === PC-88寄せ：デジタル8色＋太い走査線＋オーバースキャン黒枠 === */
+  html.lofi body{ background:#000 !important; }
+  html.lofi #scanlines{ background:repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.36) 2px 4px) !important;
+    box-shadow:inset 0 0 0 7px #000, inset 0 0 70px rgba(0,0,0,.55) !important; }
+  html.lofi .board{ background:#0000a0 !important; border:2px solid #00ffff !important; }   /* PC-88ブルー */
+  html.lofi .card, html.lofi .mini{ background:#fff !important; border:3px solid #000 !important; box-shadow:4px 4px 0 #000 !important; }
+  html.lofi .card{ color:#000 !important; }
+  html.lofi .card.red, html.lofi .mini.red{ color:#f00 !important; }
+  html.lofi .card.top{ border-color:#ffe000 !important; box-shadow:4px 4px 0 #000, inset 0 0 0 3px #ff0 !important; }
+  html.lofi .card.win{ border-color:#0f0 !important; }
+  html.lofi .chip, html.lofi .timechip, html.lofi .stno, html.lofi .goalcards,
+  html.lofi .handbar, html.lofi button, html.lofi .ch-pill, html.lofi .pp-cell{
+    background:#000 !important; border:2px solid #0ff !important; box-shadow:3px 3px 0 #000 !important; }
+  html.lofi .timewrap{ border:2px solid #0ff !important; background:#000 !important; }
+  html.lofi .timebar{ background:#0f0 !important; }
+  html.lofi .timebar.low{ background:#f00 !important; }
+  html.lofi #title .t-logo .gold, html.lofi .goal b, html.lofi .chip b.gold, html.lofi .goal .pip.on{ color:#ff0 !important; }
+  html.lofi .handbar .name.ok{ color:#0f0 !important; }
+  html.lofi .ch-pill{ color:#0ff !important; }
   .ch-pill{background:rgba(16,26,52,.94);border:1.6px solid var(--accent);border-radius:999px;
     padding:5px 15px;font-weight:900;font-size:16px;color:var(--accent);letter-spacing:.03em;white-space:nowrap;
     box-shadow:0 0 18px rgba(90,209,255,.55),0 2px 8px rgba(0,0,0,.4);}
@@ -324,7 +344,7 @@
       </div>
     </div>
     <div style="display:flex;gap:10px;"><button id="reset">はじめから</button><button id="toMenu">タイトルへ</button></div>
-    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.8</div>
+    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.8.1</div>
   </div>
 
   <!-- タイトル画面 -->
@@ -341,7 +361,7 @@
     <button id="titleStart">はじめる</button>
     <button id="titlePass" class="t-sec">パスポート ✈</button>
     <button id="titleLofi" class="t-sec">ローレゾ：OFF</button>
-    <div class="t-ver">v2.8</div>
+    <div class="t-ver">v2.8.1</div>
   </div>
 
   <!-- パスポート（ワールド・ポーカー・ツアー） -->
