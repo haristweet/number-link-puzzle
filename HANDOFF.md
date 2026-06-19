@@ -45,6 +45,7 @@
 > **v2.7＝★クリアの格ゲー風シネマ演出**：黒帯レターボックス＋盤面モノクロ化(`.wrap.cine-dim`)＋特大「WELL DONE!」スラム＋勝利5枚をカラーのまま文字前面にクローン表示(`#cine`/`cineFx`/`cineEnd`、winStage冒頭で1.5秒→従来の⭐へ)。
 > **v2.7.1＝CHAIN表示のドッジ**：なぞり中の指が上2段ならHUDを盤面下端へ(`#chainHud.low`)、下2段で上端復帰、中段据え置き（`hudDodge`、start/moveで発火、チェイン終了でリセット）。
 > **v2.8＝ローレゾ（8bit風）モード**：タイトルの「ローレゾ」ボタンで `html.lofi` 全切替（`localStorage 'majipoka_lofi'`・起動時復元）。スキャンライン(`#scanlines`)＋カクカク札＋フラット配色＋ドット字（DotGothic16をON時のみ遅延読込・`loadLofiFont`）。コード＝`applyLofi`/`initLofi`、見た目のみ・挙動無変更。**v2.8.1でPC-88寄せ**＝デジタル8色（盤面=PC-88ブルー#0000a0＋シアン枠、原色レッド札、緑/黄）＋太い走査線＋オーバースキャン黒枠。調整は `html.lofi` ブロック内の色／`#scanlines` の濃さ。
+> **v2.9＝ドパミン演出（全力）**：マージ/チェイン/天井札でパーティクル大量噴射＋フラッシュ＋画面パンチ＋縁ティント。チェイン段で青天井にエスカレーション（×5で爆発）。コード＝`burst`/`popText`/`flashScreen`/`tintEdge`/`screenPunch`/`chainJuice`（WAAPIで描画）＋要素 `#fx`/`#jflash`/`#jtint`。`armFreeze(cx,cy)`に座標追加、`doMerge`が噴射起点を渡す、`topCardFx`はジャックポット噴射。強度つまみ＝`chainJuice`内の係数。挙動は無変更。
 
 > **現状（2026-06-10）**：マージ＆昇天が**本体に昇格**＝`index.html`化（旧ポーカー対戦は `archive/poker.html` へ／取り残しの旧 `merge.html` も `archive/merge.html` へ退避）。**宿題だった「3回以内にK→A(★昇天)へ届くか」は達成済み**（v1.9時点で実機全クリ確認＝難易度カーブは当たり）。以降は体験の磨き込みフェーズ。
 > - **モバイル更新 v2.0〜2.2**：NEXT先読み3枚／UI刷新「読む→見る」(初回チュートリアル・目標カード絵・役プレビューを変化後の絵・上部バー簡素化)／タイトル画面内蔵。
