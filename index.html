@@ -257,6 +257,32 @@
     display:none;flex-direction:column;align-items:center;gap:4px;}
   #chainHud.show{display:flex;}
   #chainHud.low{top:auto;bottom:-6px;flex-direction:column-reverse;}  /* 指が上段にいる間は下へ退避 */
+
+  /* ===== ローレゾ（8bit風）スキン：html.lofi で全切替 ===== */
+  #scanlines{position:fixed;inset:0;z-index:200;pointer-events:none;display:none;}
+  html.lofi #scanlines{display:block;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.20) 2px 3px);}
+  html.lofi{ image-rendering:pixelated; }
+  html.lofi, html.lofi body, html.lofi button{ font-family:'DotGothic16','Courier New',monospace !important; }
+  html.lofi *{ border-radius:0 !important; text-shadow:none !important; }
+  html.lofi body{ background:#11112a !important; }
+  /* カード：カクカク＋ハードシャドウ */
+  html.lofi .card, html.lofi .mini{
+    background:#f2f2e6 !important; border:3px solid #14141e !important; box-shadow:4px 4px 0 rgba(0,0,0,.5) !important; }
+  html.lofi .card{ color:#14141e !important; }
+  html.lofi .card.red, html.lofi .mini.red{ color:#d8203a !important; }
+  html.lofi .card.top{ border-color:#d8a91e !important; box-shadow:4px 4px 0 rgba(0,0,0,.5), inset 0 0 0 3px #ffd75e !important; }
+  html.lofi .card.win{ border-color:#46e6a0 !important; }
+  /* バー・チップ・ボタン・パスポートセル */
+  html.lofi .chip, html.lofi .timechip, html.lofi .stno, html.lofi .goalcards,
+  html.lofi .handbar, html.lofi button, html.lofi .ch-pill, html.lofi .pp-cell{
+    background:#1d1d40 !important; border:2px solid #50508a !important; box-shadow:3px 3px 0 rgba(0,0,0,.5) !important; }
+  html.lofi .timewrap{ border:2px solid #50508a !important; background:#0b0b1e !important; }
+  html.lofi .timebar{ background:#46e6a0 !important; }
+  html.lofi .timebar.low{ background:#ff5a6a !important; }
+  html.lofi .board{ background:#191938 !important; }
+  /* ロゴ・大文字はハード影で“レトロ”に */
+  html.lofi #title .t-logo, html.lofi #cine .ctext{ text-shadow:4px 4px 0 #000 !important; }
   .ch-pill{background:rgba(16,26,52,.94);border:1.6px solid var(--accent);border-radius:999px;
     padding:5px 15px;font-weight:900;font-size:16px;color:var(--accent);letter-spacing:.03em;white-space:nowrap;
     box-shadow:0 0 18px rgba(90,209,255,.55),0 2px 8px rgba(0,0,0,.4);}
@@ -298,7 +324,7 @@
       </div>
     </div>
     <div style="display:flex;gap:10px;"><button id="reset">はじめから</button><button id="toMenu">タイトルへ</button></div>
-    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.7.1</div>
+    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.8</div>
   </div>
 
   <!-- タイトル画面 -->
@@ -314,7 +340,8 @@
     </div>
     <button id="titleStart">はじめる</button>
     <button id="titlePass" class="t-sec">パスポート ✈</button>
-    <div class="t-ver">v2.7.1</div>
+    <button id="titleLofi" class="t-sec">ローレゾ：OFF</button>
+    <div class="t-ver">v2.8</div>
   </div>
 
   <!-- パスポート（ワールド・ポーカー・ツアー） -->
@@ -347,6 +374,7 @@
   <div id="dangerWash"></div>
   <div id="dangerPulse"></div>
   <div id="dangerFlash"></div>
+  <div id="scanlines"></div>
   <div id="cine"><div class="bar top"></div><div class="bar bot"></div><div class="ctext">WELL<br>DONE!</div></div>
   <div id="flash"></div>
   <div id="toast"></div>
@@ -827,6 +855,20 @@
   function closePassport(){ document.getElementById('passport').classList.remove('show'); document.getElementById('title').classList.remove('hide'); }
   document.getElementById('titlePass').addEventListener('click',()=>{ openPassport(); });
   document.getElementById('ppClose').addEventListener('click',()=>{ closePassport(); });
+
+  // ===== ローレゾ（8bit風）モード =====
+  const LOFI_KEY='majipoka_lofi'; let lofiFontLoaded=false;
+  function loadLofiFont(){ if(lofiFontLoaded) return; lofiFontLoaded=true;
+    const l=document.createElement('link'); l.rel='stylesheet';
+    l.href='https://fonts.googleapis.com/css2?family=DotGothic16&display=swap'; document.head.appendChild(l); }
+  function applyLofi(on){
+    document.documentElement.classList.toggle('lofi', on);
+    const b=document.getElementById('titleLofi'); if(b) b.textContent='ローレゾ：'+(on?'ON':'OFF');
+    if(on) loadLofiFont();
+    try{ localStorage.setItem(LOFI_KEY, on?'1':'0'); }catch(e){}
+  }
+  document.getElementById('titleLofi').addEventListener('click',()=>applyLofi(!document.documentElement.classList.contains('lofi')));
+  (function initLofi(){ let on=false; try{ on=localStorage.getItem(LOFI_KEY)==='1'; }catch(e){} applyLofi(on); })();
 
   // タイトル画面から開始
   document.getElementById('titleStart').addEventListener('click',()=>{
