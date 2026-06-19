@@ -5,6 +5,7 @@
 > 2. **git履歴を1コミットに作り直して force-push 済み**（haristweet表記の除去のため）。**古いクローンでは `git pull` が失敗する**ので、モバイル側は**フォルダごと削除して再clone**すること：
 >    `git clone https://github.com/takeshi-hariu/number-link-puzzle.git`
 > 3. コミットIDは `user.name=takeshi-hariu` / `user.email=takeshi-hariu@coly.info` に統一。
+> 4. **push が `denied to haristweet` (403) で弾かれる場合**：ghのアクティブ垢が haristweet に戻っている。`gh auth switch -u takeshi-hariu` で直る（恒久対策は `gh auth logout -u haristweet` で旧垢を外す）。
 
 別環境（モバイルアプリ等）で続きをやるための引き継ぎ。**まず `git pull` で最新の `main` を取得してから作業すること**（↑初回は再clone）。
 
@@ -43,6 +44,7 @@
 > **改称（v2.6）**：タイトルを「マージ＆昇天」→**「マジポカ」**（MERGE×POKER）に変更。タイトルロゴ/タブ名/ヘッダー表示のみ。v2.6.1でクリアトーストも「昇 天 ！」→「WELL DONE!」（プレイヤー画面から「昇天」表記を除去）。
 > **v2.7＝★クリアの格ゲー風シネマ演出**：黒帯レターボックス＋盤面モノクロ化(`.wrap.cine-dim`)＋特大「WELL DONE!」スラム＋勝利5枚をカラーのまま文字前面にクローン表示(`#cine`/`cineFx`/`cineEnd`、winStage冒頭で1.5秒→従来の⭐へ)。
 > **v2.7.1＝CHAIN表示のドッジ**：なぞり中の指が上2段ならHUDを盤面下端へ(`#chainHud.low`)、下2段で上端復帰、中段据え置き（`hudDodge`、start/moveで発火、チェイン終了でリセット）。
+> **v2.8＝ローレゾ（8bit風）モード**：タイトルの「ローレゾ」ボタンで `html.lofi` 全切替（`localStorage 'majipoka_lofi'`・起動時復元）。スキャンライン(`#scanlines`)＋カクカク札＋フラット配色＋ドット字（DotGothic16をON時のみ遅延読込・`loadLofiFont`）。コード＝`applyLofi`/`initLofi`、見た目のみ・挙動無変更。
 
 > **現状（2026-06-10）**：マージ＆昇天が**本体に昇格**＝`index.html`化（旧ポーカー対戦は `archive/poker.html` へ／取り残しの旧 `merge.html` も `archive/merge.html` へ退避）。**宿題だった「3回以内にK→A(★昇天)へ届くか」は達成済み**（v1.9時点で実機全クリ確認＝難易度カーブは当たり）。以降は体験の磨き込みフェーズ。
 > - **モバイル更新 v2.0〜2.2**：NEXT先読み3枚／UI刷新「読む→見る」(初回チュートリアル・目標カード絵・役プレビューを変化後の絵・上部バー簡素化)／タイトル画面内蔵。
