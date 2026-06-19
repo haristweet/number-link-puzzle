@@ -122,6 +122,8 @@
   #fx .ptext{position:absolute;left:50%;white-space:nowrap;font-weight:900;letter-spacing:-.02em;text-shadow:0 3px 0 #000,0 0 22px rgba(255,255,255,.5);will-change:transform,opacity;}
   #jflash{position:fixed;inset:0;z-index:57;pointer-events:none;opacity:0;}
   #jtint{position:fixed;inset:0;z-index:56;pointer-events:none;opacity:0;}
+  #confetti{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}   /* カードの裏（背面）で舞う */
+  #confetti .conf{position:absolute;top:0;will-change:transform;border-radius:1px;}
   #flash{position:fixed;inset:0;z-index:49;background:radial-gradient(circle at 50% 60%, rgba(255,240,200,.55), transparent 60%);opacity:0;pointer-events:none;}
   #flash.show{animation:flash .8s ease;}
   @keyframes flash{0%{opacity:0;}20%{opacity:1;}100%{opacity:0;}}
@@ -350,7 +352,7 @@
       </div>
     </div>
     <div style="display:flex;gap:10px;"><button id="reset">はじめから</button><button id="toMenu">タイトルへ</button></div>
-    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.9</div>
+    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.10</div>
   </div>
 
   <!-- タイトル画面 -->
@@ -367,7 +369,7 @@
     <button id="titleStart">はじめる</button>
     <button id="titlePass" class="t-sec">パスポート ✈</button>
     <button id="titleLofi" class="t-sec">ローレゾ：OFF</button>
-    <div class="t-ver">v2.9</div>
+    <div class="t-ver">v2.10</div>
   </div>
 
   <!-- パスポート（ワールド・ポーカー・ツアー） -->
@@ -400,6 +402,7 @@
   <div id="dangerWash"></div>
   <div id="dangerPulse"></div>
   <div id="dangerFlash"></div>
+  <div id="confetti"></div>
   <div id="jtint"></div>
   <div id="jflash"></div>
   <div id="fx"></div>
@@ -622,6 +625,26 @@
       k.push({transform:'translate('+((Math.random()*2-1)*d)+'px,'+((Math.random()*2-1)*d)+'px) scale('+(1+(scale-1)*(1-t))+')'}); }
     k.push({transform:'translate(0,0) scale(1)'});
     w.animate(k,{duration:130+amp*10,easing:'ease-out'}); }
+  // 背面（カードの裏）に降る紙吹雪
+  const confEl=document.getElementById('confetti');
+  const CONF_COL=['#ff5a6a','#5ad1ff','#46e6a0','#ffd75e','#c77dff','#ff9518','#ffffff'];
+  function confetti(count){
+    const W=innerWidth, H=innerHeight;
+    for(let i=0;i<count;i++){
+      const p=document.createElement('div'); p.className='conf';
+      const w=5+rnd(7), h=9+rnd(9);
+      p.style.width=w+'px'; p.style.height=h+'px';
+      p.style.background=CONF_COL[rnd(CONF_COL.length)];
+      confEl.appendChild(p);
+      const x0=Math.random()*W, drift=(Math.random()*2-1)*160, rot=Math.random()*1440-720;
+      p.animate([
+        {transform:'translate('+x0+'px,-30px) rotate(0deg)',opacity:1,offset:0},
+        {transform:'translate('+(x0+drift*0.5)+'px,'+(H*0.5)+'px) rotate('+(rot*0.5)+'deg)',opacity:1,offset:.5},
+        {transform:'translate('+(x0+drift)+'px,'+(H+40)+'px) rotate('+rot+'deg)',opacity:.9,offset:1}
+      ],{duration:1900+Math.random()*1600,delay:Math.random()*500,easing:'cubic-bezier(.35,.12,.5,1)'}).onfinish=()=>p.remove();
+    }
+  }
+
   // チェイン段でエスカレーションする総合ジュース
   function chainJuice(n,cx,cy){
     if(cx==null){ cx=innerWidth/2; cy=innerHeight*0.45; }
@@ -704,6 +727,7 @@
     path.forEach(p=>{const el=cardEl(p.r,p.c); if(el)el.classList.add('win');});
     Snd.ascend();
     cineFx();
+    confetti(110);                                // 背面に紙吹雪の祝祭
     score+=500; scoreEl.textContent=score;
     await wait(1500);
     cineEnd();
