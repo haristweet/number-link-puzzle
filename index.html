@@ -348,7 +348,7 @@
       </svg>
     </div>
     <div style="display:flex;gap:10px;"><button id="reset">はじめから</button><button id="toMenu">タイトルへ</button></div>
-    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.11</div>
+    <div id="verGame" style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;"></div>
   </div>
 
   <!-- タイトル画面 -->
@@ -365,7 +365,7 @@
     <button id="titleStart">はじめる</button>
     <button id="titlePass" class="t-sec">パスポート ✈</button>
     <button id="titleLofi" class="t-sec">ローレゾ：OFF</button>
-    <div class="t-ver">v2.11</div>
+    <div class="t-ver" id="verTitle"></div>
   </div>
 
   <!-- パスポート（ワールド・ポーカー・ツアー） -->
@@ -410,6 +410,8 @@
 
 <script>
 (() => {
+  const VERSION='v2.12';   // ★ここ1か所を更新すればタイトル/ゲーム画面の両方に反映
+  ['verTitle','verGame'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=VERSION; });
   const N=5;
   const boardEl=document.getElementById('board'), polyEl=document.getElementById('poly');
   const scoreEl=document.getElementById('score'), cntEl=document.getElementById('cnt');
