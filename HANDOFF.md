@@ -47,6 +47,7 @@
 > **v2.8＝ローレゾ（8bit風）モード**：タイトルの「ローレゾ」ボタンで `html.lofi` 全切替（`localStorage 'majipoka_lofi'`・起動時復元）。スキャンライン(`#scanlines`)＋カクカク札＋フラット配色＋ドット字（DotGothic16をON時のみ遅延読込・`loadLofiFont`）。コード＝`applyLofi`/`initLofi`、見た目のみ・挙動無変更。**v2.8.1でPC-88寄せ**＝デジタル8色（盤面=PC-88ブルー#0000a0＋シアン枠、原色レッド札、緑/黄）＋太い走査線＋オーバースキャン黒枠。調整は `html.lofi` ブロック内の色／`#scanlines` の濃さ。
 > **v2.9＝ドパミン演出（全力）**：マージ/チェイン/天井札でパーティクル大量噴射＋フラッシュ＋画面パンチ＋縁ティント。チェイン段で青天井にエスカレーション（×5で爆発）。コード＝`burst`/`popText`/`flashScreen`/`tintEdge`/`screenPunch`/`chainJuice`（WAAPIで描画）＋要素 `#fx`/`#jflash`/`#jtint`。`armFreeze(cx,cy)`に座標追加、`doMerge`が噴射起点を渡す、`topCardFx`はジャックポット噴射。強度つまみ＝`chainJuice`内の係数。挙動は無変更。
 > **v2.10＝★クリアの紙吹雪**：`confetti(count)` を新設、`winStage` で発火。背面レイヤー `#confetti`（z-index:-1＝カードの裏／盤パネルが半透明なので隙間から透ける）に色付き紙片をWAAPIで落下。要素 `#confetti`／CSS `.conf`。
+> **v2.11＝演出トリガーをチェイン→天井への近さに変更**：マージチェイン（armFreeze/freezeTick/endFreeze/chainJuice/CHAIN HUD/timerのCHAIN_SLOW）を**全廃**、`startTimer`は通常クロック(`timeLeft-=0.2`)に復帰。新設`rankJuice(rank,cx,cy)`＝`(rank-3)/((top-1)-3)`を0〜1正規化→lv0〜4。lv0(最低札)は静か、lv4(天井-1)で星大爆発＋白フラッシュ。`doMerge`末尾で`if(!isTop) rankJuice(...)`（天井札は従来`topCardFx`のジャックポット）。`frozen`/`resetChain`/`endFreeze`は互換用の空スタブで残置（呼び出し箇所が各所にあるため）。HUDのHTML削除済み、CSS(.ch-*/#time.frozen)は無害なので残置。
 
 > **現状（2026-06-10）**：マージ＆昇天が**本体に昇格**＝`index.html`化（旧ポーカー対戦は `archive/poker.html` へ／取り残しの旧 `merge.html` も `archive/merge.html` へ退避）。**宿題だった「3回以内にK→A(★昇天)へ届くか」は達成済み**（v1.9時点で実機全クリ確認＝難易度カーブは当たり）。以降は体験の磨き込みフェーズ。
 > - **モバイル更新 v2.0〜2.2**：NEXT先読み3枚／UI刷新「読む→見る」(初回チュートリアル・目標カード絵・役プレビューを変化後の絵・上部バー簡素化)／タイトル画面内蔵。

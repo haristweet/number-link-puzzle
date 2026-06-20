@@ -346,13 +346,9 @@
       <svg class="lines" id="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
         <polyline id="poly" fill="none" stroke="#5ad1ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
       </svg>
-      <div id="chainHud">
-        <div class="ch-pill"><span class="ch-lab">CHAIN</span> <span class="ch-x" id="chainX">×1</span></div>
-        <div class="ch-gauge"><div class="ch-fill" id="chainFill"></div></div>
-      </div>
     </div>
     <div style="display:flex;gap:10px;"><button id="reset">はじめから</button><button id="toMenu">タイトルへ</button></div>
-    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.10</div>
+    <div style="text-align:center;font-size:10px;color:rgba(154,160,201,.35);letter-spacing:.08em;">v2.11</div>
   </div>
 
   <!-- タイトル画面 -->
@@ -545,13 +541,8 @@
   function cellFromPoint(x,y){const el=document.elementFromPoint(x,y);if(!el)return null;const c=el.closest('.card');if(!c||c.style.visibility==='hidden')return null;return{r:+c.dataset.r,c:+c.dataset.c};}
   const adjacent=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1, inPath=p=>path.some(q=>q.r===p.r&&q.c===p.c);
   // CHAINハドの退避：指が上2段にいる間は下端へ、下2段に戻れば上端へ（中段は据え置き）
-  function hudDodge(p){
-    if(!chainHud.classList.contains('show')) return;
-    if(p.r<=1) chainHud.classList.add('low');
-    else if(p.r>=3) chainHud.classList.remove('low');
-  }
-  function start(x,y){ if(inputLocked)return; const p=cellFromPoint(x,y); if(!p)return; dragging=true; path=[p]; hudDodge(p); Snd.tick(1); updateVisual(); }
-  function move(x,y){ if(!dragging)return; const p=cellFromPoint(x,y); if(!p)return; hudDodge(p); const last=path[path.length-1];
+  function start(x,y){ if(inputLocked)return; const p=cellFromPoint(x,y); if(!p)return; dragging=true; path=[p]; Snd.tick(1); updateVisual(); }
+  function move(x,y){ if(!dragging)return; const p=cellFromPoint(x,y); if(!p)return; const last=path[path.length-1];
     if(last.r===p.r&&last.c===p.c)return;
     if(path.length>=2){const prev=path[path.length-2];if(prev.r===p.r&&prev.c===p.c){path.pop();updateVisual();return;}}
     if(inPath(p))return; if(!adjacent(last,p))return; if(path.length>=5)return;
@@ -559,7 +550,7 @@
   async function end(){ if(!dragging)return; dragging=false;
     const cards=pathCards(); const key=cards.length?evalHand(cards):'high';
     if(cards.length===5&&key!=='high'){ await doMerge(key); }
-    else { path=[]; updateVisual(); if(frozen) endFreeze(); } }   // フリーズ中に役を作れず離した＝連鎖終了
+    else { path=[]; updateVisual(); } }
 
   function applyGravity(){const motion=Array.from({length:N},()=>Array(N).fill(0));
     for(let c=0;c<N;c++){const surv=[];for(let r=N-1;r>=0;r--)if(grid[r][c]!=null)surv.push({row:r,val:grid[r][c]});const holes=N-surv.length;
@@ -646,17 +637,24 @@
   }
 
   // チェイン段でエスカレーションする総合ジュース
-  function chainJuice(n,cx,cy){
+  // できた札がそのステージの天井にどれだけ近いかで派手さを決める
+  // near = 0（最低札3相当）〜 1（天井-1） … 天井そのものは topCardFx 側で別途ジャックポット
+  function rankJuice(rank, cx, cy){
     if(cx==null){ cx=innerWidth/2; cy=innerHeight*0.45; }
-    const lv=Math.min(n,5);
-    const COL=[null,'rgba(90,209,255,.6)','rgba(70,230,160,.65)','rgba(255,170,60,.7)','rgba(255,90,200,.78)','rgba(255,215,80,.9)'];
-    const col=COL[lv]||COL[5];
+    const floor=3, ceil=stage.top;                    // このステージで作れる札の範囲
+    const span=Math.max(1, (ceil-1)-floor);           // 天井手前までの幅
+    const near=Math.max(0, Math.min(1, (rank-floor)/span));
+    const lv=Math.round(near*4);                      // 0〜4 の5段階
+    if(lv<=0) return;                                  // 低い札は静か（SEはdoMerge側で再生済み）
+    const COL=[null,'rgba(90,209,255,.6)','rgba(70,230,160,.65)','rgba(255,170,60,.7)','rgba(255,90,200,.82)'];
+    const col=COL[lv]||COL[4];
     burst(cx,cy, 6+lv*9, .5+lv*0.35);
-    flashScreen(col, .22+lv*0.12);
-    tintEdge(col, .22+lv*0.12);
-    screenPunch(2+lv*2.6, 1.008+lv*0.008);
-    if(n>=2) popText('CHAIN ×'+n+(n>=4?'!!':'!'), lv>=4?'#ffd75e':'#5ad1ff', 30+lv*6);
-    if(n>=5){ burst(cx,cy, 30, 2.0, ['★','⭐','✦','💥','♦']); flashScreen('rgba(255,255,255,.55)', .55); }
+    flashScreen(col, .18+lv*0.12);
+    tintEdge(col, .18+lv*0.12);
+    screenPunch(2+lv*2.4, 1.008+lv*0.008);
+    const rl=RANKLBL[rank];
+    if(lv>=2) popText(rl+'!'+(lv>=4?'!':''), lv>=3?'#ffd75e':'#5ad1ff', 28+lv*6);
+    if(lv>=4){ burst(cx,cy, 26, 1.9, ['★','✦','💥','♦']); flashScreen('rgba(255,255,255,.5)', .5); }
   }
 
   function topCardFx(el, count){
@@ -694,7 +692,7 @@
     await wait(isTop?480:240);
     const mot=applyGravity(); render(mot);        // 重力で落とす
     await wait(240); inputLocked=false;
-    armFreeze(mcx,mcy);                            // 役成立＝1秒フリーズ＋連鎖ジュース
+    if(!isTop) rankJuice(m.rank, mcx, mcy);       // できた札の天井への近さで演出（天井札はtopCardFxで別途）
   }
 
   // 格ゲー風スラム：黒帯＋盤面モノクロ化＋特大「WELL DONE!」＋そろえた5枚だけ文字の前面でカラー
@@ -796,7 +794,7 @@
     if(sec<=5 && sec>0 && sec!==lastTickSec){ lastTickSec=sec; Snd.timetick(false); popTime(); shakeBoard(); }      // ラスト5秒は毎秒＋振動
   }
   function startTimer(){ running=true; clearInterval(timerId);
-    timerId=setInterval(()=>{ if(!running)return; timeLeft-=0.2*(frozen?CHAIN_SLOW:1);   // チェイン中はスロー（止めずに減速）
+    timerId=setInterval(()=>{ if(!running)return; timeLeft-=0.2;
       if(timeLeft<=0){ timeLeft=0; updateTimer(); loseStage(); } else updateTimer(); },200);
     updateTimer(); }
   function stopTimer(){ running=false; clearInterval(timerId); timerId=null; }
@@ -805,38 +803,10 @@
     timebarEl.classList.toggle('low', timeLeft<=10);
     updateDanger(sec); }
 
-  // ===== マージチェイン：役成立で CHAIN_FREEZE 秒フリーズ。その間に次のなぞりを“始め”れば連鎖 =====
-  const CHAIN_FREEZE=1.0;                 // フリーズ窓の秒数（次のなぞりを始めるまでの猶予）
-  const CHAIN_SLOW=0.25;                  // チェイン中のクロック速度（0=完全停止／1=通常）＝調整レバー
-  let frozen=false, chainCount=0, freezeLeft=0, freezeId=null;
-  const chainHud=document.getElementById('chainHud'), chainXEl=document.getElementById('chainX'),
-        chainFill=document.getElementById('chainFill'), chPill=chainHud.querySelector('.ch-pill');
-  function armFreeze(cx,cy){               // doMerge 成立ごとに呼ぶ（連鎖の起点＆継続）
-    chainCount++; frozen=true; freezeLeft=CHAIN_FREEZE;
-    stopBeat();                            // 時間が止まる＝鼓動も止める
-    timeEl.classList.add('frozen');
-    chainXEl.textContent='×'+chainCount;
-    chainHud.classList.add('show');
-    chPill.classList.remove('pop'); void chPill.offsetWidth; chPill.classList.add('pop');
-    chainFill.style.width='100%';
-    try{ Snd.tick(Math.min(chainCount+1,5)); }catch(e){}
-    chainJuice(chainCount, cx, cy);        // 連鎖が伸びるほど画面が爆発
-    if(!freezeId) freezeId=setInterval(freezeTick,50);
-  }
-  function freezeTick(){
-    if(!frozen){ clearInterval(freezeId); freezeId=null; return; }
-    if(dragging||inputLocked) return;      // 指を置いてる/演出中は減らない＝「始めれば停止」
-    freezeLeft-=0.05;
-    chainFill.style.width=Math.max(0,freezeLeft/CHAIN_FREEZE*100)+'%';
-    if(freezeLeft<=0) endFreeze();
-  }
-  function endFreeze(){                     // チェイン終了→クロック再開
-    frozen=false; chainCount=0;
-    if(freezeId){ clearInterval(freezeId); freezeId=null; }
-    chainHud.classList.remove('show','low'); timeEl.classList.remove('frozen');
-    if(running && lastDangerLevel>=4 && !beatTimer) beatLoop();   // 鼓動を戻す
-  }
-  function resetChain(){ frozen=false; chainCount=0; if(freezeId){clearInterval(freezeId);freezeId=null;} chainHud.classList.remove('show','low'); timeEl.classList.remove('frozen'); }
+  // チェイン機能は廃止（演出は rankJuice＝札の天井への近さで発火）。互換用の空スタブ。
+  let frozen=false;
+  function resetChain(){ frozen=false; }
+  function endFreeze(){ frozen=false; }
 
   function loseStage(){ stopTimer(); clearDanger(); resetChain(); inputLocked=true; clearHandUI(); render(); Snd.bad();
     if(continues>0){
