@@ -260,11 +260,6 @@
   .pp-cell.locked .c-flag{filter:grayscale(1);}
   #passport .pp-close{margin-top:8px;}
 
-  /* ===== マージチェイン（役成立で1秒フリーズ→連鎖） ===== */
-  #chainHud{position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;
-    display:none;flex-direction:column;align-items:center;gap:4px;}
-  #chainHud.show{display:flex;}
-  #chainHud.low{top:auto;bottom:-6px;flex-direction:column-reverse;}  /* 指が上段にいる間は下へ退避 */
 
   /* ===== ローレゾ（8bit風）スキン：html.lofi で全切替 ===== */
   #scanlines{position:fixed;inset:0;z-index:200;pointer-events:none;display:none;}
@@ -283,7 +278,7 @@
   html.lofi .card.win{ border-color:#46e6a0 !important; }
   /* バー・チップ・ボタン・パスポートセル */
   html.lofi .chip, html.lofi .timechip, html.lofi .stno, html.lofi .goalcards,
-  html.lofi .handbar, html.lofi button, html.lofi .ch-pill, html.lofi .pp-cell{
+  html.lofi .handbar, html.lofi button, html.lofi .pp-cell{
     background:#1d1d40 !important; border:2px solid #50508a !important; box-shadow:3px 3px 0 rgba(0,0,0,.5) !important; }
   html.lofi .timewrap{ border:2px solid #50508a !important; background:#0b0b1e !important; }
   html.lofi .timebar{ background:#46e6a0 !important; }
@@ -303,23 +298,13 @@
   html.lofi .card.top{ border-color:#ffe000 !important; box-shadow:4px 4px 0 #000, inset 0 0 0 3px #ff0 !important; }
   html.lofi .card.win{ border-color:#0f0 !important; }
   html.lofi .chip, html.lofi .timechip, html.lofi .stno, html.lofi .goalcards,
-  html.lofi .handbar, html.lofi button, html.lofi .ch-pill, html.lofi .pp-cell{
+  html.lofi .handbar, html.lofi button, html.lofi .pp-cell{
     background:#000 !important; border:2px solid #0ff !important; box-shadow:3px 3px 0 #000 !important; }
   html.lofi .timewrap{ border:2px solid #0ff !important; background:#000 !important; }
   html.lofi .timebar{ background:#0f0 !important; }
   html.lofi .timebar.low{ background:#f00 !important; }
   html.lofi #title .t-logo .gold, html.lofi .goal b, html.lofi .chip b.gold, html.lofi .goal .pip.on{ color:#ff0 !important; }
   html.lofi .handbar .name.ok{ color:#0f0 !important; }
-  html.lofi .ch-pill{ color:#0ff !important; }
-  .ch-pill{background:rgba(16,26,52,.94);border:1.6px solid var(--accent);border-radius:999px;
-    padding:5px 15px;font-weight:900;font-size:16px;color:var(--accent);letter-spacing:.03em;white-space:nowrap;
-    box-shadow:0 0 18px rgba(90,209,255,.55),0 2px 8px rgba(0,0,0,.4);}
-  .ch-pill .ch-lab{font-size:11px;letter-spacing:.2em;opacity:.85;}
-  .ch-pill.pop{animation:chpop .18s ease;}
-  @keyframes chpop{0%{transform:scale(.7);}60%{transform:scale(1.14);}100%{transform:scale(1);}}
-  .ch-gauge{width:92px;height:5px;border-radius:3px;background:rgba(255,255,255,.16);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.4);}
-  .ch-fill{height:100%;width:100%;background:linear-gradient(90deg,#5ad1ff,#46e6a0);}
-  #time.frozen{color:var(--accent);text-shadow:0 0 12px rgba(90,209,255,.8);}
 </style>
 </head>
 <body>
@@ -410,7 +395,7 @@
 
 <script>
 (() => {
-  const VERSION='v2.12';   // ★ここ1か所を更新すればタイトル/ゲーム画面の両方に反映
+  const VERSION='v2.12.1';   // ★ここ1か所を更新すればタイトル/ゲーム画面の両方に反映
   ['verTitle','verGame'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=VERSION; });
   const N=5;
   const boardEl=document.getElementById('board'), polyEl=document.getElementById('poly');
@@ -719,7 +704,7 @@
   }
 
   async function winStage(){
-    stopTimer(); clearDanger(); resetChain(); inputLocked=true;
+    stopTimer(); clearDanger(); inputLocked=true;
     try{ navigator.vibrate && navigator.vibrate([0,45,35,45,35,140]); }catch(e){}
     const rects=path.map(p=>cardEl(p.r,p.c).getBoundingClientRect());
     const cx=rects.reduce((a,r)=>a+r.left+r.width/2,0)/rects.length;
@@ -771,7 +756,7 @@
   function shakeBoard(){ const bw=document.querySelector('.boardwrap'); if(!bw)return; bw.classList.remove('shake'); void bw.offsetWidth; bw.classList.add('shake'); }
   // 鼓動：視覚パルスとスマホ振動を“同じトリガー”で同期。残り時間で間隔が縮む＝加速
   function beatLoop(){
-    if(!running || frozen || lastDangerLevel<4){ beatTimer=null; return; }
+    if(!running || lastDangerLevel<4){ beatTimer=null; return; }
     const period=Math.max(380, (timeLeft/26)*1000);                 // ms（減るほど短く）
     dangerPulse.classList.remove('beat1'); void dangerPulse.offsetWidth;
     dangerPulse.style.animationDuration=(period/1000).toFixed(2)+'s';
@@ -805,12 +790,8 @@
     timebarEl.classList.toggle('low', timeLeft<=10);
     updateDanger(sec); }
 
-  // チェイン機能は廃止（演出は rankJuice＝札の天井への近さで発火）。互換用の空スタブ。
-  let frozen=false;
-  function resetChain(){ frozen=false; }
-  function endFreeze(){ frozen=false; }
 
-  function loseStage(){ stopTimer(); clearDanger(); resetChain(); inputLocked=true; clearHandUI(); render(); Snd.bad();
+  function loseStage(){ stopTimer(); clearDanger(); inputLocked=true; clearHandUI(); render(); Snd.bad();
     if(continues>0){
       showOverlay('タイムアップ…','コンティニューで同じステージに再挑戦（残り '+continues+' 回）',
         'コンティニュー',()=>{ continues--; updateContinueUI(); startStage(stageIdx); }, true,
@@ -851,7 +832,7 @@
     stageNoEl.textContent=i+1;
     timeTotal=stage.time; timeLeft=stage.time;
     inputLocked=false;
-    clearDanger(); resetChain();
+    clearDanger();
     newGrid(); clearHandUI(); render(); updateVisual();
     startTimer();
     maybeShowTutorial();
@@ -964,7 +945,7 @@
     startPlay();
   });
   function toTitle(){
-    stopTimer(); clearDanger(); resetChain(); inputLocked=true;
+    stopTimer(); clearDanger(); inputLocked=true;
     document.getElementById('overlay').classList.remove('show');
     document.getElementById('title').classList.remove('hide');
   }
