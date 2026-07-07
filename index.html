@@ -350,6 +350,7 @@
     <button id="titleStart">はじめる</button>
     <button id="titlePass" class="t-sec">パスポート ✈</button>
     <button id="titleLofi" class="t-sec">ローレゾ：OFF</button>
+    <button id="titleBgm" class="t-sec">♪ BGM：ON</button>
     <div class="t-ver" id="verTitle"></div>
   </div>
 
@@ -395,7 +396,7 @@
 
 <script>
 (() => {
-  const VERSION='v2.12.1';   // ★ここ1か所を更新すればタイトル/ゲーム画面の両方に反映
+  const VERSION='v2.13';   // ★ここ1か所を更新すればタイトル/ゲーム画面の両方に反映
   ['verTitle','verGame'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=VERSION; });
   const N=5;
   const boardEl=document.getElementById('board'), polyEl=document.getElementById('poly');
@@ -464,7 +465,35 @@
     function t(f,ty,d,g,sl,when){if(!ac())return;const n=(when!=null?when:ctx.currentTime);const o=ctx.createOscillator(),gn=ctx.createGain();o.type=ty;o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(sl,n+d);gn.gain.setValueAtTime(.0001,n);gn.gain.linearRampToValueAtTime(g,n+.005);gn.gain.exponentialRampToValueAtTime(.0001,n+d);o.connect(gn).connect(m);o.start(n);o.stop(n+d+.05);}
     // 連続音もまとめてオーディオ時計に予約
     function seq(notes,ty,d,g,gap,sl){if(!ac())return;const n=ctx.currentTime;notes.forEach((f,i)=>t(f,ty,d,g,sl,n+i*gap));}
-    return{ensure:ac,tick:k=>t(320+Math.min(k,5)*60,'triangle',.04,.14),
+    // ---- PSG風チップチューンBGM（矩形波＋ノイズ／8小節ループ）----
+    let bgmOn=false,bgmTimer=null,bgmStep=0,bgmNext=0,bgmG=null,nBuf=null;
+    const TEMPO=152, STP=60/TEMPO/4;                 // 16分音符の秒数
+    function nf(s){if(!s)return 0;const M={C:0,D:2,E:4,F:5,G:7,A:9,B:11};const q=s.match(/^([A-G])(#|b)?(-?\d)$/);if(!q)return 0;const se=M[q[1]]+(q[2]==='#'?1:q[2]==='b'?-1:0);return 440*Math.pow(2,(se+(+q[3]+1)*12-69)/12);}
+    const CH=[['C2',['C4','E4','G4','C5']],['G2',['G3','B3','D4','G4']],['A2',['A3','C4','E4','A4']],['F2',['F3','A3','C4','F4']],
+              ['C2',['C4','E4','G4','C5']],['G2',['G3','B3','D4','G4']],['F2',['F3','A3','C4','F4']],['G2',['G3','B3','D4','G4']]];
+    const LEAD=[[0,'E5',2],[2,'E5',2],[4,'G5',2],[6,'E5',2],[8,'C5',4],[12,'D5',4],
+      [16,'D5',2],[18,'D5',2],[20,'G5',2],[22,'F5',2],[24,'D5',4],[28,'B4',4],
+      [32,'C5',2],[34,'E5',2],[36,'A5',4],[40,'G5',2],[42,'E5',2],[44,'C5',4],
+      [48,'F5',2],[50,'A5',2],[52,'G5',4],[56,'F5',2],[58,'E5',2],[60,'C5',4],
+      [64,'E5',2],[66,'G5',2],[68,'C6',4],[72,'B5',2],[74,'G5',2],[76,'E5',2],
+      [80,'D5',4],[84,'G5',2],[86,'A5',2],[88,'B5',4],[92,'D6',4],
+      [96,'C6',2],[98,'A5',2],[100,'F5',4],[104,'A5',2],[106,'G5',2],[108,'F5',2],
+      [112,'G5',2],[114,'F5',2],[116,'D5',2],[118,'F5',2],[120,'G5',8]];
+    const LMAP={}; LEAD.forEach(e=>LMAP[e[0]]=e);
+    function bt(f,when,dur,g){if(!f)return;const o=ctx.createOscillator(),gn=ctx.createGain();o.type='square';o.frequency.setValueAtTime(f,when);gn.gain.setValueAtTime(.0001,when);gn.gain.linearRampToValueAtTime(g,when+.008);gn.gain.exponentialRampToValueAtTime(.0001,when+dur);o.connect(gn).connect(bgmG);o.start(when);o.stop(when+dur+.02);}
+    function bn(when,dur,g,hp){const s=ctx.createBufferSource();s.buffer=nBuf;const gn=ctx.createGain(),f=ctx.createBiquadFilter();f.type=hp?'highpass':'lowpass';f.frequency.value=hp?7000:400;gn.gain.setValueAtTime(g,when);gn.gain.exponentialRampToValueAtTime(.0001,when+dur);s.connect(f).connect(gn).connect(bgmG);s.start(when);s.stop(when+dur+.02);}
+    function bstep(step,when){const bar=Math.floor(step/16)%8,sib=step%16,ch=CH[bar],br=nf(ch[0]);
+      if(sib===0||sib===8)bt(br,when,STP*3.4,.34);
+      else if(sib===4||sib===12)bt(br*Math.pow(2,7/12),when,STP*3,.26);   // 5度
+      bt(nf(ch[1][sib%4]),when,STP*0.9,.09);                              // アルペジオ16分
+      if(sib%2===0)bn(when,.03,.16,true);                                 // ハット
+      if(sib===0||sib===8)bn(when,.13,.55,false);                         // キック
+      if(sib===4||sib===12)bn(when,.10,.34,true);                         // スネア
+      const ev=LMAP[step];if(ev)bt(nf(ev[1]),when,STP*ev[2]*0.95,.34);}    // リード
+    function btick(){if(!bgmOn||!ctx)return;const la=ctx.currentTime+.12;while(bgmNext<la){bstep(bgmStep,bgmNext);bgmStep=(bgmStep+1)%128;bgmNext+=STP;}}
+    function startBGM(){if(!ac()||bgmOn)return;if(!bgmG){bgmG=ctx.createGain();bgmG.gain.value=.22;bgmG.connect(m);nBuf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*.3),ctx.sampleRate);const d=nBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}bgmOn=true;bgmStep=0;bgmNext=ctx.currentTime+.08;if(!bgmTimer)bgmTimer=setInterval(btick,30);}
+    function stopBGM(){bgmOn=false;if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;}}
+    return{ensure:ac,startBGM,stopBGM,tick:k=>t(320+Math.min(k,5)*60,'triangle',.04,.14),
       merge:r=>t(300+r*40,'triangle',.14,.32,500+r*60),
       top:(lvl=1)=>{const roots=[523,587,659,740,880];const root=roots[Math.min(Math.max(lvl,1),5)-1];seq([root,root*1.5],'triangle',.16,.4,.08);},
       ascend:()=>seq([523,659,784,1047,1319],'sine',.5,.36,.11),
@@ -824,7 +853,7 @@
     contsEl.innerHTML='コンティニュー <b>'+dots+'</b>';
     contsEl.classList.toggle('low', continues<=1);
   }
-  function startPlay(){ continues=CONTINUE_MAX; score=0; scoreEl.textContent='0'; updateContinueUI(); startStage(0); }
+  function startPlay(){ continues=CONTINUE_MAX; score=0; scoreEl.textContent='0'; updateContinueUI(); if(bgmEnabled) Snd.startBGM(); startStage(0); }
 
   // ---- ステージ開始 ----
   function startStage(i){
@@ -938,6 +967,15 @@
   document.getElementById('titleLofi').addEventListener('click',()=>applyLofi(!document.documentElement.classList.contains('lofi')));
   (function initLofi(){ let on=false; try{ on=localStorage.getItem(LOFI_KEY)==='1'; }catch(e){} applyLofi(on); })();
 
+  // ===== チップチューンBGM トグル =====
+  const BGM_KEY='majipoka_bgm'; let bgmEnabled=true; try{ bgmEnabled=localStorage.getItem(BGM_KEY)!=='0'; }catch(e){}
+  function updateBgmBtn(){ const b=document.getElementById('titleBgm'); if(b) b.textContent='♪ BGM：'+(bgmEnabled?'ON':'OFF'); }
+  document.getElementById('titleBgm').addEventListener('click',()=>{
+    bgmEnabled=!bgmEnabled; try{ localStorage.setItem(BGM_KEY, bgmEnabled?'1':'0'); }catch(e){}
+    updateBgmBtn(); if(bgmEnabled) Snd.startBGM(); else Snd.stopBGM();
+  });
+  updateBgmBtn();
+
   // タイトル画面から開始
   document.getElementById('titleStart').addEventListener('click',()=>{
     Snd.ensure();
@@ -945,7 +983,7 @@
     startPlay();
   });
   function toTitle(){
-    stopTimer(); clearDanger(); inputLocked=true;
+    stopTimer(); clearDanger(); inputLocked=true; Snd.stopBGM();
     document.getElementById('overlay').classList.remove('show');
     document.getElementById('title').classList.remove('hide');
   }
